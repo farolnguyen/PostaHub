@@ -49,10 +49,18 @@ Muc tieu:
 - User va Admin co login/register/forgot password/logout rieng.
 
 Viec can lam:
-- Cau hinh guard/provider trong `config/auth.php`.
-- Tao controller/view route auth cho user.
-- Tao controller/view route auth cho admin (`/admin/*`).
-- Middleware bao ve route theo tung guard.
+- [x] Cau hinh guard/provider trong `config/auth.php`.
+- [x] Tao controller auth cho user (login/register).
+- [x] Tao controller auth cho admin (`/admin/*`) (login/register).
+- [x] Khai bao route login/register cho user va admin.
+- [ ] Tao view auth rieng cho user/admin.
+- [ ] Cap nhat model va hoan thien auth flow can thiet.
+- [ ] Hoan thien redirect sau login/logout cho tung guard.
+- [ ] Test tay toan bo luong user/admin auth.
+
+Trang thai hien tai:
+- Da xong phan Controller + Router cho login/register.
+- Chua code: View, cap nhat model bo sung, redirect/login-logout day du, test tay.
 
 Output:
 - Dang nhap user/admin doc lap, khong nham quyen.
