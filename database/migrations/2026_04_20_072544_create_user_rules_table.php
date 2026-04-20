@@ -13,6 +13,9 @@ return new class extends Migration
     {
         Schema::create('user_rules', function (Blueprint $table) {
             $table->id();
+            $table->foreignId('user_id')->constrained()->cascadeOnDelete()->unique();
+            $table->boolean('can_post')->default(true);
+            $table->boolean('can_comment')->default(true);
             $table->timestamps();
         });
     }
