@@ -12,7 +12,7 @@ class UserRegisterController extends Controller{
     public function showRegistrationForm(): View|RedirectResponse
     {
         if (Auth::check()) {
-            return redirect()->route('user.index');
+            return redirect()->route('home');
         }
         return view('auth.user.register');
     }
