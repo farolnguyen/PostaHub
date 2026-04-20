@@ -9,8 +9,8 @@ PostaHub la project Laravel theo de bai tong hop, tap trung vao he thong dang ba
 - Co import/export, phan quyen, logging, queue, schedule, cache theo yeu cau de bai.
 
 ## Cong nghe
-- Laravel
-- PHP 8.2+ / 8.3
+- Laravel 13
+- PHP 8.3
 - MySQL
 - Bootstrap 4.5
 - Node.js + npm (build frontend assets)
