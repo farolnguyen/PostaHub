@@ -13,13 +13,13 @@
 
         <div class="d-flex align-items-center">
             @if (auth('web')->check())
-                <span class="navbar-text text-white mr-2 small">{{ auth('web')->user()->name }}</span>
+                <span class="navbar-text text-white mr-2 small">Xin chào {{ auth('web')->user()->name }}</span>
                 <form action="{{ route('user.logout') }}" method="post" class="d-inline">
                     @csrf
                     <button type="submit" class="btn btn-light btn-sm">Đăng xuất</button>
                 </form>
             @elseif (auth('admin')->check())
-                <span class="navbar-text text-white mr-2 small">{{ auth('admin')->user()->name }}</span>
+                <span class="navbar-text text-white mr-2 small">Xin chào Admin {{ auth('admin')->user()->name }}</span>
                 <form action="{{ route('admin.logout') }}" method="post" class="d-inline">
                     @csrf
                     <button type="submit" class="btn btn-light btn-sm">Đăng xuất</button>
