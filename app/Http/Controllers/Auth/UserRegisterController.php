@@ -8,12 +8,15 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
-class UserRegisterController extends Controller{
+
+class UserRegisterController extends Controller
+{
     public function showRegistrationForm(): View|RedirectResponse
     {
-        if (Auth::check()) {
-            return redirect()->route('home');
+        if (Auth::guard('web')->check()) {
+            return redirect()->route('user.index');
         }
+
         return view('auth.user.register');
     }
 
@@ -28,12 +31,17 @@ class UserRegisterController extends Controller{
         $user = User::create([
             'name' => $request->name,
             'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'password' => $request->password,
         ]);
+
+        $user->rule()->create([
+            'can_post' => true,
+            'can_comment' => true,
+        ]);
+
         Auth::guard('web')->login($user);
         $request->session()->regenerate();
 
-        return redirect()->route('login');
+        return redirect()->route('user.index');
     }
-
 }

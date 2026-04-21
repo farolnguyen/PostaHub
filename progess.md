@@ -53,14 +53,16 @@ Viec can lam:
 - [x] Tao controller auth cho user (login/register).
 - [x] Tao controller auth cho admin (`/admin/*`) (login/register).
 - [x] Khai bao route login/register cho user va admin.
-- [ ] Tao view auth rieng cho user/admin.
-- [ ] Cap nhat model va hoan thien auth flow can thiet.
-- [ ] Hoan thien redirect sau login/logout cho tung guard.
-- [ ] Test tay toan bo luong user/admin auth.
+- [x] Tao view auth rieng cho user/admin.
+- [x] Them luong forgot/reset password cho user va admin.
+- [x] Cap nhat model va hoan thien auth flow can thiet.
+- [x] Hoan thien redirect sau login/logout cho tung guard.
+- [x] Test tay + smoke test luong user/admin auth.
 
 Trang thai hien tai:
-- Da xong phan Controller + Router cho login/register.
-- Chua code: View, cap nhat model bo sung, redirect/login-logout day du, test tay.
+- Da hoan thanh login/register/logout/forgot-password cho user va admin.
+- Da tao trang `mypage` tam va `admin dashboard` tam de test redirect.
+- Da test pass cac luong register/login cho user va admin.
 
 Output:
 - Dang nhap user/admin doc lap, khong nham quyen.
@@ -81,16 +83,32 @@ Viec can lam:
 Output:
 - Nguoi dung tao bai, binh luan, tra loi, like day du.
 
+Tien do hien tai (Phase C):
+- [x] C1: Dung khung route cho post detail (public), mypage post CRUD, admin post CRUD.
+- [x] C2: Hoan thanh Post CRUD (user/admin) + Form Request validate.
+- [x] C3: Tich hop CKEditor cho form tao/sua post.
+- [x] C4: Hoan thanh comment cho post + reply comment polymorphic + sua/xoa comment cua chinh minh.
+- [x] C5: Like/unlike post (toggle + hien thi tong like tren post detail).
+- [x] C6: Mypage like/profile (`/mypage/like`, `/mypage/profile`).
+- [x] C7: Media upload cho post/comment (upload file + luu polymorphic media + hien thi gallery).
+- [x] Bo sung admin/media theo sitemap: upload/edit/delete/detail + danh sach quan ly.
+- [x] Bo sung admin/comment theo sitemap: create/edit/delete + danh sach quan ly.
+
+Luu y bao mat:
+- Hien tai post/comment detail dang render HTML bang cu phap raw (`{!! ... !!}`) de hien thi dung noi dung tu CKEditor.
+- Cach nay co rui ro XSS neu user nhap script/doc hai.
+- Huong xu ly de an toan hon o buoc tiep theo: sanitize HTML truoc khi luu (VD: mews/purifier) hoac whitelist tag cho phep.
+
 ### Phase D - Mypage, Rule, Policy/Gate
 Muc tieu:
 - Hoan chinh dashboard user va phan quyen nghiep vu.
 
 Viec can lam:
-- `/mypage/post`: danh sach bai cua user.
-- `/mypage/like`: danh sach bai da like.
-- `/mypage/profile`: comment cua user + danh sach ai like bai cua user.
-- `/admin/rule`: bat/tat quyen `can_post`, `can_comment`.
-- Ap dung Policy/Gate cho cac hanh dong CRUD.
+- [x] `/mypage/post`: danh sach bai cua user.
+- [x] `/mypage/like`: danh sach bai da like.
+- [x] `/mypage/profile`: comment cua user + danh sach ai like bai cua user.
+- [x] `/admin/rule`: bat/tat quyen `can_post`, `can_comment` (bang `user_rules`, dang ky user tu dong tao rule mac dinh).
+- [x] Ap dung Policy (`PostPolicy`, `CommentPolicy`) + dang ky `Gate::policy` trong `AppServiceProvider`; `authorize()` tren mypage post + comment user; Blade `@can` an form khi khong duoc phep.
 
 Output:
 - User chi thao tac duoc dung quyen, admin quan tri rule de dang.

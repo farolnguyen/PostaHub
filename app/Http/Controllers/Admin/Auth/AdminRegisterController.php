@@ -3,17 +3,20 @@
 namespace App\Http\Controllers\Admin\Auth;
 
 use App\Http\Controllers\Controller;
+use App\Models\Admin;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\View\View;
+
 class AdminRegisterController extends Controller
 {
-    public function showRegistrationForm(): View|RedirectResponse
+    public function showRegisterForm(): View|RedirectResponse
     {
         if (Auth::guard('admin')->check()) {
             return redirect()->route('admin.dashboard');
         }
+
         return view('auth.admin.register');
     }
 
@@ -28,10 +31,12 @@ class AdminRegisterController extends Controller
         $admin = Admin::create([
             'name' => $request->name,
             'email' => $request->email,
-            'password' => Hash::make($request->password),
+            'password' => $request->password,
         ]);
+
         Auth::guard('admin')->login($admin);
         $request->session()->regenerate();
+
         return redirect()->route('admin.dashboard');
     }
 }
