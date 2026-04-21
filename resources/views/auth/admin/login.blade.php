@@ -47,7 +47,7 @@
                 <a href="{{ route('admin.register.form') }}">Tạo tài khoản admin</a>
             </p>
             <p class="mt-3 mb-0 text-center">
-                <a href="{{ route('password.request') }}">Quên mật khẩu?</a>
+                <a href="{{ route('admin.password.request') }}">Quên mật khẩu?</a>
             </p>
         </div>
     </div>
