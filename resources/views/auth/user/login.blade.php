@@ -50,8 +50,9 @@
                 <a href="{{ route('password.request') }}">Quên mật khẩu?</a>
             </p>
             <p class="mt-3 mb-0 text-center">
-                <a href="{{ route('home') }}">Về trang chủ</a>
+                <a href="{{ route('admin.login.form') }}">Đăng nhập bằng tài khoản Admin</a>
             </p>
+
         </div>
     </div>
 @endsection

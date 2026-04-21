@@ -13,7 +13,7 @@
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h1 class="h4 mb-0">Quyền đăng bài / bình luận theo user</h1>
-        <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary">Dashboard</a>
+        <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary">Quay lại</a>
     </div>
 
     @if (session('status'))

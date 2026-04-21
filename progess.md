@@ -94,6 +94,10 @@ Tiến độ hiện tại (Phase C):
 - [x] Bổ sung admin/media theo sitemap: upload/edit/delete/detail + danh sách quản lý.
 - [x] Bổ sung admin/comment theo sitemap: create/edit/delete + danh sách quản lý.
 - [x] C8: Trang chủ (`/`) chuyển thành bảng tin bài đăng dạng feed (list bài mới nhất, thumbnail/media, thống kê like/comment, phân trang), tách khỏi giao diện login/register kép trước đó.
+- [x] C9: URL slug của post tự sinh từ tiêu đề (auto-generate), có ô preview slug readonly cập nhật realtime khi gõ tiêu đề.
+- [x] C10: Đồng bộ UX upload media đa ảnh cho post/comment: thêm dần input file, preview ảnh, nút xóa từng dòng, giới hạn tối đa 5 ảnh.
+- [x] C11: Cải thiện hiển thị ảnh: render ảnh từ URL/upload trực tiếp và thêm fallback ảnh lỗi (`public/images/image-fallback.png`).
+- [x] C12: Bỏ input URL ảnh riêng ở comment; hỗ trợ nhúng URL ảnh trực tiếp trong nội dung bình luận (auto render `<img>` khi lưu).
 
 Lưu ý bảo mật:
 - Hiện tại post/comment detail đang render HTML bằng cú pháp raw (`{!! ... !!}`) để hiển thị đúng nội dung từ CKEditor.
@@ -110,6 +114,8 @@ Việc cần làm:
 - [x] `/mypage/profile`: comment của user + danh sách ai đã thích bài của user.
 - [x] `/admin/rule`: bật/tắt quyền `can_post`, `can_comment` (bảng `user_rules`, đăng ký user tự động tạo rule mặc định).
 - [x] Áp dụng Policy (`PostPolicy`, `CommentPolicy`) + đăng ký `Gate::policy` trong `AppServiceProvider`; `authorize()` trên mypage post + comment user; Blade `@can` ẩn form khi không được phép.
+- [x] Header dùng chung toàn site (`partials/site-header`) với hành vi theo guard (user/admin/guest), admin hiển thị nút `Dashboard` thay cho `Trang cá nhân`.
+- [x] Cải tiến giao diện dashboard/mypage để dễ thao tác hơn (card layout cho admin dashboard và mypage index).
 
 Output:
 - User chỉ thao tác đúng quyền, admin quản trị rule dễ dàng.

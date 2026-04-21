@@ -54,9 +54,7 @@
             <p class="mt-3 mb-0 text-center">
                 <a href="{{ route('admin.login.form') }}">Quay lại đăng nhập</a>
             </p>
-            <p class="mt-3 mb-0 text-center">
-                <a href="{{ route('home') }}">Về trang chủ</a>
-            </p>
+
         </div>
     </div>
 @endsection

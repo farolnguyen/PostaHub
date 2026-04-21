@@ -54,9 +54,7 @@
             <p class="mt-3 mb-0 text-center">
                 <a href="{{ route('user.login.form') }}">Đã có tài khoản? Đăng nhập</a>
             </p>
-            <p class="mt-3 mb-0 text-center">
-                <a href="{{ route('home') }}">Về trang chủ</a>
-            </p>
+
         </div>
     </div>
 @endsection

@@ -4,7 +4,11 @@
 
         <div class="d-flex align-items-center flex-grow-1 justify-content-center">
             <a class="btn btn-outline-light btn-sm mr-2" href="{{ route('home') }}">Trang chủ</a>
-            <a class="btn btn-outline-light btn-sm" href="{{ auth('web')->check() ? route('user.index') : route('user.login.form') }}">Trang cá nhân</a>
+            @if (auth('admin')->check())
+                <a class="btn btn-outline-light btn-sm" href="{{ route('admin.dashboard') }}">Dashboard</a>
+            @else
+                <a class="btn btn-outline-light btn-sm" href="{{ auth('web')->check() ? route('user.index') : route('user.login.form') }}">Trang cá nhân</a>
+            @endif
         </div>
 
         <div class="d-flex align-items-center">

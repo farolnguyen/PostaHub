@@ -49,9 +49,6 @@
             <p class="mt-3 mb-0 text-center">
                 <a href="{{ route('password.request') }}">Quên mật khẩu?</a>
             </p>
-            <p class="mt-3 mb-0 text-center">
-                <a href="{{ route('home') }}">Về trang chủ</a>
-            </p>
         </div>
     </div>
 @endsection

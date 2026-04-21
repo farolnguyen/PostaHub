@@ -15,7 +15,7 @@
         <h1 class="h4 mb-0">Quản lý media</h1>
         <div>
             <a href="{{ route('admin.media.upload') }}" class="btn btn-primary">Upload media</a>
-            <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary ml-2">Dashboard</a>
+            <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary ml-2">Quay lại</a>
         </div>
     </div>
 

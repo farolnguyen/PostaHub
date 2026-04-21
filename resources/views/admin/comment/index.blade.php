@@ -15,7 +15,7 @@
         <h1 class="h4 mb-0">Quản lý bình luận</h1>
         <div>
             <a href="{{ route('admin.comment.create') }}" class="btn btn-primary">Tạo bình luận</a>
-            <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary ml-2">Dashboard</a>
+            <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary ml-2">Quay lại</a>
         </div>
     </div>
 
