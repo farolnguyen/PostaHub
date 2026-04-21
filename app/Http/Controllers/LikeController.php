@@ -19,14 +19,14 @@ class LikeController extends Controller
         if ($existingLike) {
             $existingLike->delete();
 
-            return back()->with('status', 'Ban da bo like bai viet.');
+            return back()->with('status', 'Bạn đã bỏ thích bài viết.');
         }
 
         $post->likes()->create([
             'user_id' => $userId,
         ]);
 
-        return back()->with('status', 'Ban da like bai viet.');
+        return back()->with('status', 'Bạn đã thích bài viết.');
     }
 }
 

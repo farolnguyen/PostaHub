@@ -17,15 +17,27 @@ use App\Http\Controllers\Mypage\ProfileController as MypageProfileController;
 use App\Http\Controllers\Admin\MediaController as AdminMediaController;
 use App\Http\Controllers\Admin\CommentController as AdminCommentController;
 use App\Http\Controllers\Admin\RuleController as AdminRuleController;
+use App\Http\Controllers\PostSlugPreviewController;
+use App\Models\Post;
 
 Route::get('/', function () {
-    return view('welcome');
+    $posts = Post::query()
+        ->with(['user', 'media'])
+        ->withCount(['likes', 'comments'])
+        ->latest()
+        ->paginate(10);
+
+    return view('welcome', compact('posts'));
 })->name('home');
+
+Route::redirect('/welcome', '/')->name('welcome.page');
 
 // Alias for middleware that expects route('login')
 Route::get('/auth/login', function () {
     return redirect()->route('user.login.form');
 })->name('login');
+
+Route::get('/post/slug-preview', PostSlugPreviewController::class)->name('post.slug-preview');
 
 Route::middleware('guest:web')->group(function () {
     Route::get('/login', [UserAuthController::class, 'showLoginForm'])->name('user.login.form');

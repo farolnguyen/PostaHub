@@ -37,6 +37,7 @@ class PostController extends Controller
 
         $data = $request->validated();
         $data['user_id'] = Auth::id();
+        $data['url'] = Post::makeUniqueUrl($data['title']);
         unset($data['media_images'], $data['thumbnail_file']);
 
         if ($request->hasFile('thumbnail_file')) {
@@ -49,7 +50,7 @@ class PostController extends Controller
 
         return redirect()
             ->route('mypage.post.index')
-            ->with('status', 'Tao bai viet thanh cong.');
+            ->with('status', 'Tạo bài viết thành công.');
     }
 
     public function edit(Post $post): View
@@ -66,6 +67,10 @@ class PostController extends Controller
         $data = $request->validated();
         unset($data['media_images'], $data['thumbnail_file']);
 
+        if ($post->title !== $data['title']) {
+            $data['url'] = Post::makeUniqueUrl($data['title'], $post->id);
+        }
+
         if ($request->hasFile('thumbnail_file')) {
             $data['thumbnail'] = Storage::disk('public')
                 ->url($request->file('thumbnail_file')->store('thumbnails', 'public'));
@@ -76,7 +81,7 @@ class PostController extends Controller
 
         return redirect()
             ->route('mypage.post.index')
-            ->with('status', 'Cap nhat bai viet thanh cong.');
+            ->with('status', 'Cập nhật bài viết thành công.');
     }
 
     public function destroy(Post $post): RedirectResponse
@@ -87,7 +92,7 @@ class PostController extends Controller
 
         return redirect()
             ->route('mypage.post.index')
-            ->with('status', 'Xoa bai viet thanh cong.');
+            ->with('status', 'Xóa bài viết thành công.');
     }
 
     private function storePostMedia(Post $post, array $files): void

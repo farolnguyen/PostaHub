@@ -3,15 +3,16 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>Quan ly quyen user</title>
+    <title>Quản lý quyền user</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css"
           integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2"
           crossorigin="anonymous">
 </head>
 <body class="bg-light">
+@include('partials.site-header')
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h4 mb-0">Quyen post / comment theo user</h1>
+        <h1 class="h4 mb-0">Quyền đăng bài / bình luận theo user</h1>
         <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary">Dashboard</a>
     </div>
 
@@ -24,9 +25,9 @@
             <table class="table mb-0">
                 <thead class="thead-light">
                 <tr>
-                    <th>Ten</th>
+                    <th>Tên</th>
                     <th>Email</th>
-                    <th>Quyen (user_rules)</th>
+                    <th>Quyền (user_rules)</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -52,7 +53,7 @@
                                     <input class="form-check-input" type="checkbox" name="can_comment" id="can_comment_{{ $user->id }}" value="1" @checked($canComment)>
                                     <label class="form-check-label" for="can_comment_{{ $user->id }}">can_comment</label>
                                 </div>
-                                <button type="submit" class="btn btn-sm btn-primary ml-md-auto">Luu</button>
+                                <button type="submit" class="btn btn-sm btn-primary ml-md-auto">Lưu</button>
                             </form>
                         </td>
                     </tr>

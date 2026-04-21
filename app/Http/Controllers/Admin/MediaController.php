@@ -42,7 +42,7 @@ class MediaController extends Controller
         $target = $this->resolveTarget($validated['target_type'], (int) $validated['target_id']);
 
         if (! $target) {
-            return back()->withErrors(['target_id' => 'Doi tuong gan media khong ton tai.'])->withInput();
+            return back()->withErrors(['target_id' => 'Đối tượng gắn media không tồn tại.'])->withInput();
         }
 
         $file = $request->file('file');
@@ -54,7 +54,7 @@ class MediaController extends Controller
             'size' => $file->getSize(),
         ]);
 
-        return redirect()->route('admin.media.index')->with('status', 'Upload media thanh cong.');
+        return redirect()->route('admin.media.index')->with('status', 'Tải lên media thành công.');
     }
 
     public function show(Media $media): View
@@ -84,7 +84,7 @@ class MediaController extends Controller
         $target = $this->resolveTarget($validated['target_type'], (int) $validated['target_id']);
 
         if (! $target) {
-            return back()->withErrors(['target_id' => 'Doi tuong gan media khong ton tai.'])->withInput();
+            return back()->withErrors(['target_id' => 'Đối tượng gắn media không tồn tại.'])->withInput();
         }
 
         $data = [
@@ -106,7 +106,7 @@ class MediaController extends Controller
 
         $media->update($data);
 
-        return redirect()->route('admin.media.detail', $media)->with('status', 'Cap nhat media thanh cong.');
+        return redirect()->route('admin.media.detail', $media)->with('status', 'Cập nhật media thành công.');
     }
 
     public function destroy(Media $media): RedirectResponse
@@ -114,7 +114,7 @@ class MediaController extends Controller
         $this->deletePhysicalFile($media->path);
         $media->delete();
 
-        return redirect()->route('admin.media.index')->with('status', 'Xoa media thanh cong.');
+        return redirect()->route('admin.media.index')->with('status', 'Xóa media thành công.');
     }
 
     private function resolveTarget(string $type, int $id): Post|Comment|null

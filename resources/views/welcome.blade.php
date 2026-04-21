@@ -9,89 +9,77 @@
           crossorigin="anonymous">
 </head>
 <body class="bg-light">
-<nav class="navbar navbar-expand-lg navbar-dark bg-primary shadow-sm">
-    <div class="container">
-        <a class="navbar-brand font-weight-bold" href="{{ url('/') }}">{{ config('app.name', 'PostaHub') }}</a>
-        <div class="navbar-nav ml-auto flex-row align-items-center">
-            @auth('web')
-                <span class="navbar-text text-white mr-3 d-none d-sm-inline small">Xin chào, {{ Auth::guard('web')->user()->name }}</span>
-                <a class="btn btn-light btn-sm mr-2" href="{{ route('user.index') }}">Mypage</a>
-                <form action="{{ route('user.logout') }}" method="post" class="d-inline">
-                    @csrf
-                    <button type="submit" class="btn btn-outline-light btn-sm">Đăng xuất</button>
-                </form>
-            @else
-                <a class="btn btn-light btn-sm mr-2" href="{{ route('user.login.form') }}">Đăng nhập</a>
-                <a class="btn btn-outline-light btn-sm" href="{{ route('user.register.form') }}">Đăng ký</a>
-            @endauth
-        </div>
-    </div>
-</nav>
+@include('partials.site-header')
 
-<main class="py-5">
+<main class="py-4">
     <div class="container">
-        <div class="row justify-content-center text-center mb-5">
+        <div class="row justify-content-center mb-4">
+            <div class="col-lg-8 text-center">
+                <h1 class="h3 font-weight-bold text-dark mb-2">Bảng tin bài viết</h1>
+                <p class="text-muted mb-0">Danh sách bài đăng mới nhất từ cộng đồng PostaHub.</p>
+            </div>
+        </div>
+
+        <div class="row justify-content-center">
             <div class="col-lg-8">
-                <h1 class="display-4 font-weight-bold text-dark">Chào mừng đến {{ config('app.name', 'PostaHub') }}</h1>
-                <p class="lead text-muted mb-0">
-                    Nơi chia sẻ bài viết, thảo luận và tương tác. Đăng nhập thành viên để tham gia cộng đồng,
-                    hoặc vào khu vực quản trị nếu bạn là admin.
-                </p>
-            </div>
-        </div>
+                @if (session('status'))
+                    <div class="alert alert-success">{{ session('status') }}</div>
+                @endif
 
-        <div class="row">
-            <div class="col-md-6 mb-4">
-                <div class="card shadow-sm h-100 border-0">
-                    <div class="card-body p-4">
-                        <h2 class="h4 font-weight-bold mb-3">Thành viên</h2>
-                        <p class="text-muted mb-4">
-                            Tạo tài khoản hoặc đăng nhập để đăng bài, bình luận và quản lý trang cá nhân (mypage).
-                        </p>
-                        @guest('web')
-                            <div class="d-flex flex-wrap">
-                                <a href="{{ route('user.login.form') }}" class="btn btn-primary btn-lg mr-2 mb-2">Đăng nhập</a>
-                                <a href="{{ route('user.register.form') }}" class="btn btn-outline-primary btn-lg mb-2">Đăng ký</a>
+                @forelse($posts as $post)
+                    <div class="card shadow-sm mb-3">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between align-items-start mb-2">
+                                <div>
+                                    <h2 class="h5 mb-1">
+                                        <a href="{{ route('post.detail', $post->url) }}" class="text-dark text-decoration-none">{{ $post->title }}</a>
+                                    </h2>
+                                    <div class="small text-muted">
+                                        Tác giả: {{ $post->user->name ?? 'N/A' }} · {{ $post->created_at }}
+                                    </div>
+                                </div>
                             </div>
-                        @else
-                            <p class="text-success mb-3 small">Bạn đã đăng nhập bằng tài khoản thành viên.</p>
-                            <a href="{{ route('user.index') }}" class="btn btn-primary mb-2">Vào Mypage</a>
-                            <form action="{{ route('user.logout') }}" method="post" class="d-inline">
-                                @csrf
-                                <button type="submit" class="btn btn-outline-secondary">Đăng xuất</button>
-                            </form>
-                        @endguest
+
+                            @if($post->thumbnail)
+                                <div class="mb-2">
+                                    <img src="{{ $post->thumbnail }}" alt="thumbnail {{ $post->title }}" class="img-fluid rounded border" style="max-height: 360px;" onerror="this.onerror=null;this.src='{{ asset('images/image-fallback.png') }}';">
+                                </div>
+                            @endif
+
+                            @if($post->media->count())
+                                <div class="row mb-2">
+                                    @foreach($post->media->take(3) as $media)
+                                        <div class="col-md-4 mb-2">
+                                            <img src="{{ $media->path }}" alt="post media" class="img-fluid rounded border" onerror="this.onerror=null;this.src='{{ asset('images/image-fallback.png') }}';">
+                                        </div>
+                                    @endforeach
+                                </div>
+                            @endif
+
+                            <div class="text-muted mb-2">
+                                {!! \Illuminate\Support\Str::limit(strip_tags($post->content), 220) !!}
+                            </div>
+
+                            <div class="d-flex justify-content-between align-items-center">
+                                <div class="small text-muted">
+                                    👍 {{ $post->likes_count }} · 💬 {{ $post->comments_count }}
+                                </div>
+                                <a href="{{ route('post.detail', $post->url) }}" class="btn btn-sm btn-outline-primary">Xem chi tiết</a>
+                            </div>
+                        </div>
                     </div>
+                @empty
+                    <div class="card shadow-sm">
+                        <div class="card-body text-center text-muted py-5">
+                            Chưa có bài đăng nào.
+                        </div>
+                    </div>
+                @endforelse
+
+                <div class="mt-3">
+                    {{ $posts->links() }}
                 </div>
             </div>
-
-            <div class="col-md-6 mb-4">
-                <div class="card shadow-sm h-100 border-primary">
-                    <div class="card-body p-4">
-                        <h2 class="h4 font-weight-bold mb-3">Quản trị</h2>
-                        <p class="text-muted mb-4">
-                            Khu vực dành cho admin: đăng nhập hoặc đăng ký tài khoản quản trị (tách biệt với thành viên).
-                        </p>
-                        @guest('admin')
-                            <div class="d-flex flex-wrap">
-                                <a href="{{ route('admin.login.form') }}" class="btn btn-primary btn-lg mr-2 mb-2">Admin đăng nhập</a>
-                                <a href="{{ route('admin.register.form') }}" class="btn btn-outline-primary btn-lg mb-2">Admin đăng ký</a>
-                            </div>
-                        @else
-                            <p class="text-success mb-3 small">Bạn đã đăng nhập admin.</p>
-                            <form action="{{ route('admin.logout') }}" method="post" class="d-inline">
-                                @csrf
-                                <button type="submit" class="btn btn-outline-secondary">Đăng xuất admin</button>
-                            </form>
-                            <a href="{{ route('admin.dashboard') }}" class="btn btn-primary ml-2">Vào bảng điều khiển</a>
-                        @endguest
-                    </div>
-                </div>
-            </div>
-        </div>
-
-        <div class="text-center text-muted small mt-4">
-            <p class="mb-0">PostaHub · Laravel · Bootstrap 4.5</p>
         </div>
     </div>
 </main>

@@ -9,11 +9,12 @@
           crossorigin="anonymous">
 </head>
 <body class="bg-light">
+@include('partials.site-header')
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h4 mb-0">Quan ly comment</h1>
+        <h1 class="h4 mb-0">Quản lý bình luận</h1>
         <div>
-            <a href="{{ route('admin.comment.create') }}" class="btn btn-primary">Tao comment</a>
+            <a href="{{ route('admin.comment.create') }}" class="btn btn-primary">Tạo bình luận</a>
             <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary ml-2">Dashboard</a>
         </div>
     </div>
@@ -29,9 +30,9 @@
                 <tr>
                     <th>ID</th>
                     <th>User</th>
-                    <th>Noi dung</th>
-                    <th>Comment cho</th>
-                    <th class="text-right">Thao tac</th>
+                    <th>Nội dung</th>
+                    <th>Bình luận cho</th>
+                    <th class="text-right">Thao tác</th>
                 </tr>
                 </thead>
                 <tbody>
@@ -51,7 +52,7 @@
                         </td>
                         <td class="text-right">
                             <a href="{{ route('admin.comment.edit', $comment) }}" class="btn btn-sm btn-outline-primary">Edit</a>
-                            <form action="{{ route('admin.comment.delete', $comment) }}" method="post" class="d-inline" onsubmit="return confirm('Ban chac chan muon xoa comment nay?');">
+                            <form action="{{ route('admin.comment.delete', $comment) }}" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bình luận này?');">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
@@ -59,7 +60,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="5" class="text-center text-muted py-4">Chua co comment.</td></tr>
+                    <tr><td colspan="5" class="text-center text-muted py-4">Chưa có bình luận.</td></tr>
                 @endforelse
                 </tbody>
             </table>

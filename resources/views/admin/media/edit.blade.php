@@ -9,6 +9,7 @@
           crossorigin="anonymous">
 </head>
 <body class="bg-light">
+@include('partials.site-header')
 <div class="container py-4">
     <div class="card shadow-sm">
         <div class="card-body">
@@ -24,14 +25,14 @@
                 </div>
             @endif
 
-            <img src="{{ $media->path }}" alt="media" class="img-fluid rounded border mb-3" style="max-width:220px;">
+            <img src="{{ $media->path }}" alt="media" class="img-fluid rounded border mb-3" style="max-width:220px;" onerror="this.onerror=null;this.src='{{ asset('images/image-fallback.png') }}';">
 
             <form action="{{ route('admin.media.update', $media) }}" method="post" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
 
                 <div class="form-group">
-                    <label for="target_type">Gan vao doi tuong</label>
+                    <label for="target_type">Gắn vào đối tượng</label>
                     <select name="target_type" id="target_type" class="form-control" required>
                         <option value="post" @selected(old('target_type', $media->mediable_type === \App\Models\Post::class ? 'post' : 'comment')==='post')>Post</option>
                         <option value="comment" @selected(old('target_type', $media->mediable_type === \App\Models\Comment::class ? 'comment' : 'post')==='comment')>Comment</option>
@@ -44,17 +45,17 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="type">Mime type (tuy chon)</label>
+                    <label for="type">Mime type (tùy chọn)</label>
                     <input type="text" id="type" name="type" value="{{ old('type', $media->type) }}" class="form-control">
                 </div>
 
                 <div class="form-group">
-                    <label for="file">Doi file anh (tuy chon)</label>
+                    <label for="file">Đổi file ảnh (tùy chọn)</label>
                     <input type="file" id="file" name="file" class="form-control-file" accept="image/*">
                 </div>
 
-                <button type="submit" class="btn btn-primary">Luu cap nhat</button>
-                <a href="{{ route('admin.media.detail', $media) }}" class="btn btn-outline-secondary ml-2">Quay lai</a>
+                <button type="submit" class="btn btn-primary">Lưu cập nhật</button>
+                <a href="{{ route('admin.media.detail', $media) }}" class="btn btn-outline-secondary ml-2">Quay lại</a>
             </form>
         </div>
     </div>

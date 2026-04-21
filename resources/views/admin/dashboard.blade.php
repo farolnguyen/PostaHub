@@ -9,20 +9,21 @@
           crossorigin="anonymous">
 </head>
 <body class="bg-light">
+@include('partials.site-header')
 <div class="container py-5">
     <div class="card shadow-sm">
         <div class="card-body">
             <h1 class="h4 mb-3">Admin Dashboard</h1>
-            <p class="text-muted mb-4">Trang quan tri tam thoi cho Phase B.</p>
-            <a href="{{ route('admin.post.index') }}" class="btn btn-primary mr-2">Quan ly post</a>
-            <a href="{{ route('admin.media.index') }}" class="btn btn-outline-primary mr-2">Quan ly media</a>
-            <a href="{{ route('admin.comment.index') }}" class="btn btn-outline-primary mr-2">Quan ly comment</a>
-            <a href="{{ route('admin.rule.index') }}" class="btn btn-outline-primary mr-2">Quyen user (rule)</a>
+            <p class="text-muted mb-4">Trang quản trị.</p>
+            <a href="{{ route('admin.post.index') }}" class="btn btn-primary mr-2">Quản lý bài viết</a>
+            <a href="{{ route('admin.media.index') }}" class="btn btn-outline-primary mr-2">Quản lý media</a>
+            <a href="{{ route('admin.comment.index') }}" class="btn btn-outline-primary mr-2">Quản lý bình luận</a>
+            <a href="{{ route('admin.rule.index') }}" class="btn btn-outline-primary mr-2">Quyền user (rule)</a>
             <form action="{{ route('admin.logout') }}" method="post" class="d-inline">
                 @csrf
-                <button type="submit" class="btn btn-danger">Dang xuat admin</button>
+                <button type="submit" class="btn btn-danger">Đăng xuất admin</button>
             </form>
-            <a href="{{ route('home') }}" class="btn btn-outline-secondary ml-2">Ve trang chu</a>
+            <a href="{{ route('home') }}" class="btn btn-outline-secondary ml-2">Về trang chủ</a>
         </div>
     </div>
 </div>

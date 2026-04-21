@@ -9,11 +9,12 @@
           crossorigin="anonymous">
 </head>
 <body class="bg-light">
+@include('partials.site-header')
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h4 mb-0">Quan ly bai viet (Admin)</h1>
+        <h1 class="h4 mb-0">Quản lý bài viết (Admin)</h1>
         <div>
-            <a href="{{ route('admin.post.create') }}" class="btn btn-primary">Tao bai viet</a>
+            <a href="{{ route('admin.post.create') }}" class="btn btn-primary">Tạo bài viết</a>
             <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary ml-2">Dashboard</a>
         </div>
     </div>
@@ -28,10 +29,10 @@
                 <thead class="thead-light">
                     <tr>
                         <th>ID</th>
-                        <th>Tieu de</th>
-                        <th>Tac gia</th>
+                        <th>Tiêu đề</th>
+                        <th>Tác giả</th>
                         <th>Slug</th>
-                        <th class="text-right">Thao tac</th>
+                        <th class="text-right">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -44,7 +45,7 @@
                         <td class="text-right">
                             <a href="{{ route('admin.post.detail', $post) }}" class="btn btn-sm btn-outline-info">Detail</a>
                             <a href="{{ route('admin.post.edit', $post) }}" class="btn btn-sm btn-outline-primary">Edit</a>
-                            <form action="{{ route('admin.post.destroy', $post) }}" method="post" class="d-inline" onsubmit="return confirm('Ban chac chan muon xoa bai nay?');">
+                            <form action="{{ route('admin.post.destroy', $post) }}" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bài này?');">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
@@ -53,7 +54,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5" class="text-center text-muted py-4">Chua co bai viet nao.</td>
+                        <td colspan="5" class="text-center text-muted py-4">Chưa có bài viết nào.</td>
                     </tr>
                 @endforelse
                 </tbody>

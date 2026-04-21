@@ -39,18 +39,18 @@ class CommentController extends Controller
 
         $target = $this->resolveTarget($validated['target_type'], (int) $validated['target_id']);
         if (! $target) {
-            return back()->withErrors(['target_id' => 'Doi tuong comment khong ton tai.'])->withInput();
+            return back()->withErrors(['target_id' => 'Đối tượng bình luận không tồn tại.'])->withInput();
         }
 
         $comment = $target->comments()->create([
             'user_id' => (int) $validated['user_id'],
-            'content' => $validated['content'],
-            'image' => $this->storeImageUrl($request, 'image_file', $validated['image'] ?? null),
+            'content' => $this->embedImageUrls($validated['content']),
+            'image' => null,
         ]);
 
         $this->storeCommentMedia($comment, $request->file('media_images', []));
 
-        return redirect()->route('admin.comment.index')->with('status', 'Admin tao comment thanh cong.');
+        return redirect()->route('admin.comment.index')->with('status', 'Admin đã tạo bình luận thành công.');
     }
 
     public function edit(Comment $comment): View
@@ -69,22 +69,20 @@ class CommentController extends Controller
 
         $target = $this->resolveTarget($validated['target_type'], (int) $validated['target_id']);
         if (! $target) {
-            return back()->withErrors(['target_id' => 'Doi tuong comment khong ton tai.'])->withInput();
+            return back()->withErrors(['target_id' => 'Đối tượng bình luận không tồn tại.'])->withInput();
         }
-
-        $imagePath = $this->storeImageUrl($request, 'image_file', $validated['image'] ?? $comment->image, $comment->image);
 
         $comment->update([
             'user_id' => (int) $validated['user_id'],
-            'content' => $validated['content'],
-            'image' => $imagePath,
+            'content' => $this->embedImageUrls($validated['content']),
+            'image' => $comment->image,
             'commentable_type' => $target::class,
             'commentable_id' => $target->id,
         ]);
 
         $this->storeCommentMedia($comment, $request->file('media_images', []));
 
-        return redirect()->route('admin.comment.index')->with('status', 'Admin cap nhat comment thanh cong.');
+        return redirect()->route('admin.comment.index')->with('status', 'Admin đã cập nhật bình luận thành công.');
     }
 
     public function destroy(Comment $comment): RedirectResponse
@@ -98,7 +96,7 @@ class CommentController extends Controller
 
         $comment->delete();
 
-        return redirect()->route('admin.comment.index')->with('status', 'Admin da xoa comment.');
+        return redirect()->route('admin.comment.index')->with('status', 'Admin đã xóa bình luận.');
     }
 
     private function validateRequest(Request $request, bool $isCreate): array
@@ -108,9 +106,7 @@ class CommentController extends Controller
             'target_type' => ['required', 'in:post,comment'],
             'target_id' => ['required', 'integer'],
             'content' => ['required', 'string', 'min:2'],
-            'image' => ['nullable', 'string', 'max:2048'],
-            'image_file' => ['nullable', 'image', 'max:4096'],
-            'media_images' => ['nullable', 'array'],
+            'media_images' => ['nullable', 'array', 'max:5'],
             'media_images.*' => ['image', 'max:4096'],
         ]);
     }
@@ -124,19 +120,20 @@ class CommentController extends Controller
         };
     }
 
-    private function storeImageUrl(Request $request, string $fileKey, ?string $fallback = null, ?string $oldPath = null): ?string
+    private function embedImageUrls(string $content): string
     {
-        if ($request->hasFile($fileKey)) {
-            if ($oldPath) {
-                $this->deletePhysicalFile($oldPath);
-            }
+        $pattern = '/(?<!["\'=])(https?:\/\/[^\s<>"\']+\.(?:png|jpe?g|gif|webp|bmp|svg)(?:\?[^\s<>"\']*)?)/iu';
 
-            $storedPath = $request->file($fileKey)->store('media/comments', 'public');
+        return preg_replace_callback($pattern, function (array $matches): string {
+            $url = $matches[1];
+            $safe = e($url);
 
-            return Storage::disk('public')->url($storedPath);
-        }
-
-        return $fallback;
+            return sprintf(
+                '<img src="%s" alt="embedded image" class="img-fluid rounded border my-2" style="max-width: 280px;" onerror="this.onerror=null;this.src=\'%s\';">',
+                $safe,
+                e(asset('images/image-fallback.png'))
+            );
+        }, $content) ?? $content;
     }
 
     private function storeCommentMedia(Comment $comment, array $files): void

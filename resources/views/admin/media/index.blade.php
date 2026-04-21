@@ -9,9 +9,10 @@
           crossorigin="anonymous">
 </head>
 <body class="bg-light">
+@include('partials.site-header')
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h4 mb-0">Quan ly media</h1>
+        <h1 class="h4 mb-0">Quản lý media</h1>
         <div>
             <a href="{{ route('admin.media.upload') }}" class="btn btn-primary">Upload media</a>
             <a href="{{ route('admin.dashboard') }}" class="btn btn-outline-secondary ml-2">Dashboard</a>
@@ -32,7 +33,7 @@
                         <th>Type</th>
                         <th>Mediable</th>
                         <th>Size</th>
-                        <th class="text-right">Thao tac</th>
+                        <th class="text-right">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -40,7 +41,7 @@
                     <tr>
                         <td>{{ $media->id }}</td>
                         <td>
-                            <img src="{{ $media->path }}" alt="media" style="width:64px;height:64px;object-fit:cover;" class="rounded border">
+                            <img src="{{ $media->path }}" alt="media" style="width:64px;height:64px;object-fit:cover;" class="rounded border" onerror="this.onerror=null;this.src='{{ asset('images/image-fallback.png') }}';">
                         </td>
                         <td>{{ $media->type ?: 'N/A' }}</td>
                         <td>
@@ -56,7 +57,7 @@
                         <td class="text-right">
                             <a href="{{ route('admin.media.detail', $media) }}" class="btn btn-sm btn-outline-info">Detail</a>
                             <a href="{{ route('admin.media.edit', $media) }}" class="btn btn-sm btn-outline-primary">Edit</a>
-                            <form action="{{ route('admin.media.delete', $media) }}" method="post" class="d-inline" onsubmit="return confirm('Ban chac chan muon xoa media nay?');">
+                            <form action="{{ route('admin.media.delete', $media) }}" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa media này?');">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
@@ -64,7 +65,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="text-center text-muted py-4">Chua co media.</td></tr>
+                    <tr><td colspan="6" class="text-center text-muted py-4">Chưa có media.</td></tr>
                 @endforelse
                 </tbody>
             </table>

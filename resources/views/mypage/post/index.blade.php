@@ -3,20 +3,21 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-    <title>Mypage Post</title>
+    <title>Mypage — Bài viết của tôi</title>
     <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.5.3/dist/css/bootstrap.min.css"
           integrity="sha384-TX8t27EcRE3e/ihU7zmQxVncDAy5uIKz4rEkgIXeMed4M0jlfIDPvg6uqKI2xXr2"
           crossorigin="anonymous">
 </head>
 <body class="bg-light">
+@include('partials.site-header')
 <div class="container py-4">
     <div class="d-flex justify-content-between align-items-center mb-3">
-        <h1 class="h4 mb-0">Bai viet cua toi</h1>
+        <h1 class="h4 mb-0">Bài viết của tôi</h1>
         <div>
             @can('create', \App\Models\Post::class)
-                <a href="{{ route('mypage.post.create') }}" class="btn btn-primary">Tao bai viet</a>
+                <a href="{{ route('mypage.post.create') }}" class="btn btn-primary">Tạo bài viết</a>
             @endcan
-            <a href="{{ route('user.index') }}" class="btn btn-outline-secondary ml-2">Mypage</a>
+            <a href="{{ route('user.index') }}" class="btn btn-outline-secondary ml-2">Quay lại</a>
         </div>
     </div>
 
@@ -29,10 +30,10 @@
             <table class="table mb-0">
                 <thead class="thead-light">
                     <tr>
-                        <th>Tieu de</th>
+                        <th>Tiêu đề</th>
                         <th>Slug</th>
-                        <th>Cap nhat</th>
-                        <th class="text-right">Thao tac</th>
+                        <th>Cập nhật</th>
+                        <th class="text-right">Thao tác</th>
                     </tr>
                 </thead>
                 <tbody>
@@ -44,7 +45,7 @@
                         <td class="text-right">
                             <a href="{{ route('post.detail', $post->url) }}" class="btn btn-sm btn-outline-info">Detail</a>
                             <a href="{{ route('mypage.post.edit', $post) }}" class="btn btn-sm btn-outline-primary">Edit</a>
-                            <form action="{{ route('mypage.post.destroy', $post) }}" method="post" class="d-inline" onsubmit="return confirm('Ban chac chan muon xoa bai nay?');">
+                            <form action="{{ route('mypage.post.destroy', $post) }}" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bài này?');">
                                 @csrf
                                 @method('DELETE')
                                 <button type="submit" class="btn btn-sm btn-outline-danger">Delete</button>
@@ -53,7 +54,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="4" class="text-center text-muted py-4">Ban chua co bai viet nao.</td>
+                        <td colspan="4" class="text-center text-muted py-4">Bạn chưa có bài viết nào.</td>
                     </tr>
                 @endforelse
                 </tbody>

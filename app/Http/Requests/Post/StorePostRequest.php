@@ -15,11 +15,10 @@ class StorePostRequest extends FormRequest
     {
         return [
             'title' => ['required', 'string', 'min:3', 'max:255'],
-            'url' => ['required', 'string', 'min:3', 'max:255', 'alpha_dash', 'unique:posts,url'],
             'content' => ['required', 'string', 'min:10'],
             'thumbnail' => ['nullable', 'string', 'max:2048'],
             'thumbnail_file' => ['nullable', 'image', 'max:4096'],
-            'media_images' => ['nullable', 'array'],
+            'media_images' => ['nullable', 'array', 'max:5'],
             'media_images.*' => ['image', 'max:4096'],
         ];
     }

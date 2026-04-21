@@ -1,182 +1,183 @@
-# PostaHub - Project Progress Plan
+# PostaHub — Kế hoạch tiến độ dự án
 
-## 1) Muc tieu tong quan
-- Xay dung website dang bai, thao luan, like bai viet theo dung sitemap de bai.
-- Tach rieng auth cho `admin` va `user` (khong dung chung bang users).
-- Hoan thanh cac yeu cau Laravel: Routing, Controllers, Validation, Form Requests, Polymorphic, Policies/Gates, Import/Export, Logging/Exception, Queue, Scheduler, Cache.
+## 1) Mục tiêu tổng quan
+- Xây dựng website đăng bài, thảo luận, thích bài viết theo đúng sitemap đề bài.
+- Tách riêng auth cho `admin` và `user` (không dùng chung bảng users).
+- Hoàn thành các yêu cầu Laravel: Routing, Controllers, Validation, Form Requests, Polymorphic, Policies/Gates, Import/Export, Logging/Exception, Queue, Scheduler, Cache.
 
-## 2) Pham vi chuc nang can co
-- Public: xem bai viet, chi tiet bai, login/register/forget password/logout cho user.
-- Mypage user: quan ly bai viet, bai da like, profile (comment cua minh + ai like bai cua minh).
-- Admin: login/register/forget password/logout; quan ly post/comment/media; import/export; rule phan quyen user.
-- Nghiep vu chinh: post, comment, reply comment, like post, media cho post/comment.
+## 2) Phạm vi chức năng cần có
+- Public: xem bài viết, chi tiết bài, đăng nhập/đăng ký/quên mật khẩu/đăng xuất cho user.
+- Mypage user: quản lý bài viết, bài đã thích, profile (bình luận của mình + ai thích bài của mình).
+- Admin: đăng nhập/đăng ký/quên mật khẩu/đăng xuất; quản lý post/comment/media; import/export; rule phân quyền user.
+- Nghiệp vụ chính: post, comment, trả lời comment, thích post, media cho post/comment.
 
-## 3) Kien truc du lieu (database)
-- `users`: tai khoan user frontend.
-- `admins`: tai khoan admin backend.
+## 3) Kiến trúc dữ liệu (database)
+- `users`: tài khoản user frontend.
+- `admins`: tài khoản admin backend.
 - `posts`: `user_id`, `title`, `url`, `content`, `thumbnail`.
 - `comments`: `user_id`, `content`, `image`, `commentable_type`, `commentable_id` (polymorphic).
 - `media`: `path`, `type`, `size`, `mediable_type`, `mediable_id` (polymorphic).
 - `likes`: `user_id`, `post_id`, unique (`user_id`, `post_id`).
 - `user_rules`: `user_id`, `can_post`, `can_comment`.
-- Bang he thong: `sessions`, `cache`, `jobs`, `failed_jobs`, `password_reset_tokens`.
+- Bảng hệ thống: `sessions`, `cache`, `jobs`, `failed_jobs`, `password_reset_tokens`.
 
-## 4) Ke hoach trien khai theo phase
+## 4) Kế hoạch triển khai theo phase
 
-### Phase A - Khoi tao nen tang (hoan thanh)
-Muc tieu:
-- Cai va cau hinh moi truong Laravel + MySQL + Node.
-- Khoi tao project `PostaHub`.
-- Ket noi DB thanh cong, migrate thanh cong.
-- Co migration/model nen cho cac bang nghiep vu.
+### Phase A — Khởi tạo nền tảng (hoàn thành)
+Mục tiêu:
+- Cài và cấu hình môi trường Laravel + MySQL + Node.
+- Khởi tạo project `PostaHub`.
+- Kết nối DB thành công, migrate thành công.
+- Có migration/model nền cho các bảng nghiệp vụ.
 
-Viec can hoan tat:
-- [x] Tao DB `postahub_db` + user `postahub_user`.
-- [x] Cau hinh `.env` (DB, APP_NAME, SESSION_DRIVER, CACHE_STORE, QUEUE_CONNECTION).
-- [x] Tao `APP_KEY` va clear config/cache.
-- [x] Migrate bang mac dinh (`users`, `sessions`, `cache`, `jobs`, `failed_jobs`...).
-- [x] Tao migration/model: `Admin`, `Post`, `Comment`, `Media`, `Like`, `UserRule`.
-- [x] Hoan chinh schema chi tiet cac migration custom.
-- [x] Chay `php artisan migrate` khong loi cho tat ca migration.
-- [x] Hoan chinh seeders (`AdminSeeder`, `UserSeeder`) va `php artisan db:seed`.
+Việc cần hoàn tất:
+- [x] Tạo DB `postahub_db` + user `postahub_user`.
+- [x] Cấu hình `.env` (DB, APP_NAME, SESSION_DRIVER, CACHE_STORE, QUEUE_CONNECTION).
+- [x] Tạo `APP_KEY` và clear config/cache.
+- [x] Migrate bảng mặc định (`users`, `sessions`, `cache`, `jobs`, `failed_jobs`…).
+- [x] Tạo migration/model: `Admin`, `Post`, `Comment`, `Media`, `Like`, `UserRule`.
+- [x] Hoàn chỉnh schema chi tiết các migration custom.
+- [x] Chạy `php artisan migrate` không lỗi cho tất cả migration.
+- [x] Hoàn chỉnh seeders (`AdminSeeder`, `UserSeeder`) và `php artisan db:seed`.
 
 Output Phase A:
-- App chay duoc tai `http://127.0.0.1:8000`.
-- DB du bang va seed du lieu test.
+- App chạy được tại `http://127.0.0.1:8000`.
+- DB đủ bảng và seed dữ liệu test.
 
-### Phase B - Auth tach rieng User/Admin
-Muc tieu:
-- User va Admin co login/register/forgot password/logout rieng.
+### Phase B — Auth tách riêng User/Admin
+Mục tiêu:
+- User và Admin có đăng nhập/đăng ký/quên mật khẩu/đăng xuất riêng.
 
-Viec can lam:
-- [x] Cau hinh guard/provider trong `config/auth.php`.
-- [x] Tao controller auth cho user (login/register).
-- [x] Tao controller auth cho admin (`/admin/*`) (login/register).
-- [x] Khai bao route login/register cho user va admin.
-- [x] Tao view auth rieng cho user/admin.
-- [x] Them luong forgot/reset password cho user va admin.
-- [x] Cap nhat model va hoan thien auth flow can thiet.
-- [x] Hoan thien redirect sau login/logout cho tung guard.
-- [x] Test tay + smoke test luong user/admin auth.
+Việc cần làm:
+- [x] Cấu hình guard/provider trong `config/auth.php`.
+- [x] Tạo controller auth cho user (login/register).
+- [x] Tạo controller auth cho admin (`/admin/*`) (login/register).
+- [x] Khai báo route login/register cho user và admin.
+- [x] Tạo view auth riêng cho user/admin.
+- [x] Thêm luồng forgot/reset password cho user và admin.
+- [x] Cập nhật model và hoàn thiện auth flow cần thiết.
+- [x] Hoàn thiện redirect sau login/logout cho từng guard.
+- [x] Test tay + smoke test luồng user/admin auth.
 
-Trang thai hien tai:
-- Da hoan thanh login/register/logout/forgot-password cho user va admin.
-- Da tao trang `mypage` tam va `admin dashboard` tam de test redirect.
-- Da test pass cac luong register/login cho user va admin.
+Trạng thái hiện tại:
+- Đã hoàn thành login/register/logout/forgot-password cho user và admin.
+- Đã tạo trang `mypage` tạm và `admin dashboard` tạm để test redirect.
+- Đã test pass các luồng register/login cho user và admin.
 
 Output:
-- Dang nhap user/admin doc lap, khong nham quyen.
+- Đăng nhập user/admin độc lập, không nhầm quyền.
 
-### Phase C - Core business: Post, Comment, Like, Media
-Muc tieu:
-- Hoan thanh luong dang bai, thao luan, like va quan ly media.
+### Phase C — Core business: Post, Comment, Like, Media
+Mục tiêu:
+- Hoàn thành luồng đăng bài, thảo luận, thích và quản lý media.
 
-Viec can lam:
-- CRUD post cho user (mypage) va admin (quan tri).
-- Dung CKEditor cho content post/comment.
+Việc cần làm:
+- CRUD post cho user (mypage) và admin (quản trị).
+- Dùng CKEditor cho content post/comment.
 - Comment cho post + reply cho comment (polymorphic).
 - Like/unlike post.
-- Media upload nhieu anh cho post/comment.
-- Dung Blade Component cho form input.
-- Dung Form Request cho validate.
+- Media upload nhiều ảnh cho post/comment.
+- Dùng Blade Component cho form input.
+- Dùng Form Request cho validate.
 
 Output:
-- Nguoi dung tao bai, binh luan, tra loi, like day du.
+- Người dùng tạo bài, bình luận, trả lời, thích đầy đủ.
 
-Tien do hien tai (Phase C):
-- [x] C1: Dung khung route cho post detail (public), mypage post CRUD, admin post CRUD.
-- [x] C2: Hoan thanh Post CRUD (user/admin) + Form Request validate.
-- [x] C3: Tich hop CKEditor cho form tao/sua post.
-- [x] C4: Hoan thanh comment cho post + reply comment polymorphic + sua/xoa comment cua chinh minh.
-- [x] C5: Like/unlike post (toggle + hien thi tong like tren post detail).
+Tiến độ hiện tại (Phase C):
+- [x] C1: Dựng khung route cho post detail (public), mypage post CRUD, admin post CRUD.
+- [x] C2: Hoàn thành Post CRUD (user/admin) + Form Request validate.
+- [x] C3: Tích hợp CKEditor cho form tạo/sửa post.
+- [x] C4: Hoàn thành comment cho post + reply comment polymorphic + sửa/xóa comment của chính mình.
+- [x] C5: Like/unlike post (toggle + hiển thị tổng like trên post detail).
 - [x] C6: Mypage like/profile (`/mypage/like`, `/mypage/profile`).
-- [x] C7: Media upload cho post/comment (upload file + luu polymorphic media + hien thi gallery).
-- [x] Bo sung admin/media theo sitemap: upload/edit/delete/detail + danh sach quan ly.
-- [x] Bo sung admin/comment theo sitemap: create/edit/delete + danh sach quan ly.
+- [x] C7: Media upload cho post/comment (upload file + lưu polymorphic media + hiển thị gallery).
+- [x] Bổ sung admin/media theo sitemap: upload/edit/delete/detail + danh sách quản lý.
+- [x] Bổ sung admin/comment theo sitemap: create/edit/delete + danh sách quản lý.
+- [x] C8: Trang chủ (`/`) chuyển thành bảng tin bài đăng dạng feed (list bài mới nhất, thumbnail/media, thống kê like/comment, phân trang), tách khỏi giao diện login/register kép trước đó.
 
-Luu y bao mat:
-- Hien tai post/comment detail dang render HTML bang cu phap raw (`{!! ... !!}`) de hien thi dung noi dung tu CKEditor.
-- Cach nay co rui ro XSS neu user nhap script/doc hai.
-- Huong xu ly de an toan hon o buoc tiep theo: sanitize HTML truoc khi luu (VD: mews/purifier) hoac whitelist tag cho phep.
+Lưu ý bảo mật:
+- Hiện tại post/comment detail đang render HTML bằng cú pháp raw (`{!! ... !!}`) để hiển thị đúng nội dung từ CKEditor.
+- Cách này có rủi ro XSS nếu user nhập script độc hại.
+- Hướng xử lý an toàn hơn ở bước tiếp theo: sanitize HTML trước khi lưu (vd: mews/purifier) hoặc whitelist tag cho phép.
 
-### Phase D - Mypage, Rule, Policy/Gate
-Muc tieu:
-- Hoan chinh dashboard user va phan quyen nghiep vu.
+### Phase D — Mypage, Rule, Policy/Gate
+Mục tiêu:
+- Hoàn chỉnh dashboard user và phân quyền nghiệp vụ.
 
-Viec can lam:
-- [x] `/mypage/post`: danh sach bai cua user.
-- [x] `/mypage/like`: danh sach bai da like.
-- [x] `/mypage/profile`: comment cua user + danh sach ai like bai cua user.
-- [x] `/admin/rule`: bat/tat quyen `can_post`, `can_comment` (bang `user_rules`, dang ky user tu dong tao rule mac dinh).
-- [x] Ap dung Policy (`PostPolicy`, `CommentPolicy`) + dang ky `Gate::policy` trong `AppServiceProvider`; `authorize()` tren mypage post + comment user; Blade `@can` an form khi khong duoc phep.
-
-Output:
-- User chi thao tac duoc dung quyen, admin quan tri rule de dang.
-
-### Phase E - Export/Import
-Muc tieu:
-- Xuat user + post ra CSV/Excel, import user tu CSV.
-
-Viec can lam:
-- Export user (bo `created_at`, `updated_at`).
-- Export post (bo `created_at`, `updated_at`).
-- Import user tu CSV, co validate va thong bao loi dong.
-- Giao dien admin cho export/import.
+Việc cần làm:
+- [x] `/mypage/post`: danh sách bài của user.
+- [x] `/mypage/like`: danh sách bài đã thích.
+- [x] `/mypage/profile`: comment của user + danh sách ai đã thích bài của user.
+- [x] `/admin/rule`: bật/tắt quyền `can_post`, `can_comment` (bảng `user_rules`, đăng ký user tự động tạo rule mặc định).
+- [x] Áp dụng Policy (`PostPolicy`, `CommentPolicy`) + đăng ký `Gate::policy` trong `AppServiceProvider`; `authorize()` trên mypage post + comment user; Blade `@can` ẩn form khi không được phép.
 
 Output:
-- Du lieu xuat/nhap dung format va on dinh.
+- User chỉ thao tác đúng quyền, admin quản trị rule dễ dàng.
 
-### Phase F - Error handling, logging, exception, queue, scheduler
-Muc tieu:
-- Co co che bat loi, ghi log rieng cho mypage, va backup tu dong.
+### Phase E — Export/Import
+Mục tiêu:
+- Xuất user + post ra CSV/Excel, import user từ CSV.
 
-Viec can lam:
-- Tao custom Exception hoac custom Logging channel `log_mypage`.
-- Ghi log co context (user_id, route, payload toi gian) cho loi mypage.
-- Tao Artisan command backup bang user hang ngay ra CSV.
-- Gui email cho admin khi co backup moi (queue job).
-- Cau hinh scheduler va crontab Linux moi phut.
+Việc cần làm:
+- Export user (bỏ `created_at`, `updated_at`).
+- Export post (bỏ `created_at`, `updated_at`).
+- Import user từ CSV, có validate và thông báo lỗi dòng.
+- Giao diện admin cho export/import.
 
 Output:
-- He thong co log ro rang + backup tu dong + thong bao email.
+- Dữ liệu xuất/nhập đúng format và ổn định.
 
-### Phase G - Cache va toi uu
-Muc tieu:
-- Tang toc do tai trang va truy van.
+### Phase F — Error handling, logging, exception, queue, scheduler
+Mục tiêu:
+- Có cơ chế bắt lỗi, ghi log riêng cho mypage, và backup tự động.
 
-Viec can lam:
-- Cache homepage, post detail, thong ke mypage.
+Việc cần làm:
+- Tạo custom Exception hoặc custom Logging channel `log_mypage`.
+- Ghi log có context (user_id, route, payload tối giản) cho lỗi mypage.
+- Tạo Artisan command backup bảng user hằng ngày ra CSV.
+- Gửi email cho admin khi có backup mới (queue job).
+- Cấu hình scheduler và crontab Linux mỗi phút.
+
+Output:
+- Hệ thống có log rõ ràng + backup tự động + thông báo email.
+
+### Phase G — Cache và tối ưu
+Mục tiêu:
+- Tăng tốc độ tải trang và truy vấn.
+
+Việc cần làm:
+- Cache homepage, post detail, thống kê mypage.
 - Invalidate cache khi create/update/delete post/comment/like.
-- Kiem thu tinh nhat quan du lieu sau invalidate.
+- Kiểm thử tính nhất quán dữ liệu sau invalidate.
 
 Output:
-- Site nhanh hon, du lieu cap nhat dung.
+- Site nhanh hơn, dữ liệu cập nhật đúng.
 
-## 5) Tieu chuan hoan thanh (Definition of Done)
-- Tat ca route trong sitemap truy cap dung.
-- Auth admin/user tach biet, hoat dong on.
-- Post/comment/reply/like/media hoat dong day du.
-- Rule phan quyen user hoat dong dung.
-- Export/import pass voi file thuc te.
-- Log mypage ghi dung file rieng.
-- Scheduler + backup + mail thong bao hoat dong.
-- Cache hoat dong va invalidation dung.
+## 5) Tiêu chuẩn hoàn thành (Definition of Done)
+- Tất cả route trong sitemap truy cập đúng.
+- Auth admin/user tách biệt, hoạt động ổn.
+- Post/comment/reply/like/media hoạt động đầy đủ.
+- Rule phân quyền user hoạt động đúng.
+- Export/import pass với file thực tế.
+- Log mypage ghi đúng file riêng.
+- Scheduler + backup + mail thông báo hoạt động.
+- Cache hoạt động và invalidation đúng.
 
-## 6) Thu tu uu tien thuc hien (de tranh loi)
-1. Hoan tat migration + seeder (Phase A).
-2. Auth tach guard (Phase B).
+## 6) Thứ tự ưu tiên thực hiện (để tránh lỗi)
+1. Hoàn tất migration + seeder (Phase A).
+2. Auth tách guard (Phase B).
 3. Core business Post/Comment/Like/Media (Phase C).
 4. Rule + Policy/Gate + Mypage (Phase D).
 5. Export/Import (Phase E).
 6. Logging/Exception + Command/Queue/Scheduler (Phase F).
-7. Cache va toi uu (Phase G).
+7. Cache và tối ưu (Phase G).
 
-## 7) Lenh kiem tra nhanh moi ngay
+## 7) Lệnh kiểm tra nhanh mỗi ngày
 - `php artisan migrate:status`
 - `php artisan route:list`
-- `php artisan test` (neu da co test)
+- `php artisan test` (nếu đã có test)
 - `php artisan optimize:clear`
 
-## 8) Ghi chu
-- File nay la ke hoach va checklist. Cap nhat dau `[ ]` -> `[x]` sau moi muc hoan thanh.
-- Neu doi pham vi hoac doi uu tien, cap nhat truc tiep vao cac Phase.
+## 8) Ghi chú
+- File này là kế hoạch và checklist. Cập nhật dấu `[ ]` → `[x]` sau mỗi mục hoàn thành.
+- Nếu đổi phạm vi hoặc đổi ưu tiên, cập nhật trực tiếp vào các Phase.

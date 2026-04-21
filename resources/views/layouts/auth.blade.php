@@ -9,6 +9,7 @@
           crossorigin="anonymous">
 </head>
 <body class="bg-light">
+@include('partials.site-header')
 <div class="container py-5">
     <div class="row justify-content-center">
         <div class="col-md-6">

@@ -40,9 +40,10 @@ class PostController extends Controller
         $data = $request->validated();
         unset($data['media_images'], $data['thumbnail_file']);
         $data['user_id'] = (int) $request->integer('user_id');
+        $data['url'] = Post::makeUniqueUrl($data['title']);
 
         if (! User::query()->whereKey($data['user_id'])->exists()) {
-            return back()->withErrors(['user_id' => 'User khong ton tai.'])->withInput();
+            return back()->withErrors(['user_id' => 'User không tồn tại.'])->withInput();
         }
 
         if ($request->hasFile('thumbnail_file')) {
@@ -55,7 +56,7 @@ class PostController extends Controller
 
         return redirect()
             ->route('admin.post.index')
-            ->with('status', 'Admin da tao bai viet thanh cong.');
+            ->with('status', 'Admin đã tạo bài viết thành công.');
     }
 
     public function edit(Post $post): View
@@ -72,7 +73,11 @@ class PostController extends Controller
         $data['user_id'] = (int) $request->integer('user_id');
 
         if (! User::query()->whereKey($data['user_id'])->exists()) {
-            return back()->withErrors(['user_id' => 'User khong ton tai.'])->withInput();
+            return back()->withErrors(['user_id' => 'User không tồn tại.'])->withInput();
+        }
+
+        if ($post->title !== $data['title']) {
+            $data['url'] = Post::makeUniqueUrl($data['title'], $post->id);
         }
 
         if ($request->hasFile('thumbnail_file')) {
@@ -85,7 +90,7 @@ class PostController extends Controller
 
         return redirect()
             ->route('admin.post.index')
-            ->with('status', 'Admin da cap nhat bai viet thanh cong.');
+            ->with('status', 'Admin đã cập nhật bài viết thành công.');
     }
 
     public function destroy(Post $post): RedirectResponse
@@ -94,7 +99,7 @@ class PostController extends Controller
 
         return redirect()
             ->route('admin.post.index')
-            ->with('status', 'Admin da xoa bai viet thanh cong.');
+            ->with('status', 'Admin đã xóa bài viết thành công.');
     }
 
     private function storePostMedia(Post $post, array $files): void

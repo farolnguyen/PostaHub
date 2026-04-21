@@ -19,12 +19,12 @@ class CommentController extends Controller
 
         $comment = $post->comments()->create([
             'user_id' => Auth::id(),
-            'content' => $request->validated('content'),
-            'image' => $this->resolveImagePath($request),
+            'content' => $this->embedImageUrls($request->validated('content')),
+            'image' => null,
         ]);
         $this->storeCommentMedia($comment, $request->file('media_images', []));
 
-        return back()->with('status', 'Da them comment cho bai viet.');
+        return back()->with('status', 'Đã thêm bình luận cho bài viết.');
     }
 
     public function storeReply(StoreCommentRequest $request, Comment $comment): RedirectResponse
@@ -33,12 +33,12 @@ class CommentController extends Controller
 
         $reply = $comment->comments()->create([
             'user_id' => Auth::id(),
-            'content' => $request->validated('content'),
-            'image' => $this->resolveImagePath($request),
+            'content' => $this->embedImageUrls($request->validated('content')),
+            'image' => null,
         ]);
         $this->storeCommentMedia($reply, $request->file('media_images', []));
 
-        return back()->with('status', 'Da tra loi comment.');
+        return back()->with('status', 'Đã trả lời bình luận.');
     }
 
     public function edit(Comment $comment)
@@ -53,14 +53,14 @@ class CommentController extends Controller
         $this->authorize('update', $comment);
 
         $data = $request->validated();
-        $data['image'] = $this->resolveImagePath($request, $comment->image);
-        unset($data['image_file'], $data['media_images']);
+        $data['content'] = $this->embedImageUrls($data['content']);
+        unset($data['media_images']);
 
         $comment->update($data);
         $this->storeCommentMedia($comment, $request->file('media_images', []));
 
         return $this->redirectToCommentSource($comment)
-            ->with('status', 'Da cap nhat comment.');
+            ->with('status', 'Đã cập nhật bình luận.');
     }
 
     public function destroy(Comment $comment): RedirectResponse
@@ -70,7 +70,7 @@ class CommentController extends Controller
         $redirect = $this->redirectToCommentSource($comment);
         $comment->delete();
 
-        return $redirect->with('status', 'Da xoa comment.');
+        return $redirect->with('status', 'Đã xóa bình luận.');
     }
 
     private function redirectToCommentSource(Comment $comment): RedirectResponse
@@ -88,15 +88,20 @@ class CommentController extends Controller
         return redirect()->route('home');
     }
 
-    private function resolveImagePath(StoreCommentRequest|UpdateCommentRequest $request, ?string $fallback = null): ?string
+    private function embedImageUrls(string $content): string
     {
-        if ($request->hasFile('image_file')) {
-            $storedPath = $request->file('image_file')->store('media/comments', 'public');
+        $pattern = '/(?<!["\'=])(https?:\/\/[^\s<>"\']+\.(?:png|jpe?g|gif|webp|bmp|svg)(?:\?[^\s<>"\']*)?)/iu';
 
-            return Storage::disk('public')->url($storedPath);
-        }
+        return preg_replace_callback($pattern, function (array $matches): string {
+            $url = $matches[1];
+            $safe = e($url);
 
-        return $request->validated('image') ?: $fallback;
+            return sprintf(
+                '<img src="%s" alt="embedded image" class="img-fluid rounded border my-2" style="max-width: 280px;" onerror="this.onerror=null;this.src=\'%s\';">',
+                $safe,
+                e(asset('images/image-fallback.png'))
+            );
+        }, $content) ?? $content;
     }
 
     private function storeCommentMedia(Comment $comment, array $files): void

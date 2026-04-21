@@ -9,24 +9,46 @@
           crossorigin="anonymous">
 </head>
 <body class="bg-light">
-<nav class="navbar navbar-dark bg-primary mb-4">
-    <div class="container">
-        <a class="navbar-brand" href="{{ route('user.index') }}">Mypage</a>
-        <div>
-            <a class="btn btn-outline-light btn-sm" href="{{ route('home') }}">Trang chủ</a>
-            <form action="{{ route('user.logout') }}" method="post" class="d-inline ml-2">
-                @csrf
-                <button type="submit" class="btn btn-light btn-sm">Đăng xuất</button>
-            </form>
+@include('partials.site-header')
+<div class="container py-4">
+    <div class="card shadow-sm border-0 mb-4">
+        <div class="card-body p-4">
+            <h1 class="h4 mb-2">Xin chào, {{ Auth::guard('web')->user()->name }}</h1>
+            <p class="text-muted mb-0">Đây là khu vực cá nhân của bạn. Chọn một mục bên dưới để quản lý nội dung.</p>
         </div>
     </div>
-</nav>
-<div class="container">
-    <h1 class="h3">Xin chào, {{ Auth::guard('web')->user()->name }}</h1>
-    <p class="text-muted">Mypage da co 3 khu chinh theo sitemap: post, like va profile.</p>
-    <a href="{{ route('mypage.post.index') }}" class="btn btn-primary">Post cua toi</a>
-    <a href="{{ route('mypage.like.index') }}" class="btn btn-outline-primary ml-2">Bai da like</a>
-    <a href="{{ route('mypage.profile.index') }}" class="btn btn-outline-secondary ml-2">Profile</a>
+
+    <div class="row">
+        <div class="col-md-4 mb-3">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body d-flex flex-column">
+                    <h2 class="h5">Bài viết của tôi</h2>
+                    <p class="text-muted flex-grow-1 mb-3">Quản lý danh sách bài đã đăng, tạo mới hoặc chỉnh sửa nội dung.</p>
+                    <a href="{{ route('mypage.post.index') }}" class="btn btn-primary btn-sm">Vào trang bài viết</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body d-flex flex-column">
+                    <h2 class="h5">Bài đã thích</h2>
+                    <p class="text-muted flex-grow-1 mb-3">Xem lại các bài bạn đã thích và truy cập nhanh nội dung quan tâm.</p>
+                    <a href="{{ route('mypage.like.index') }}" class="btn btn-outline-primary btn-sm">Xem bài đã thích</a>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4 mb-3">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body d-flex flex-column">
+                    <h2 class="h5">Hồ sơ cá nhân</h2>
+                    <p class="text-muted flex-grow-1 mb-3">Theo dõi bình luận của bạn và các tương tác trên bài viết đã đăng.</p>
+                    <a href="{{ route('mypage.profile.index') }}" class="btn btn-outline-secondary btn-sm">Mở hồ sơ</a>
+                </div>
+            </div>
+        </div>
+    </div>
 </div>
 </body>
 </html>

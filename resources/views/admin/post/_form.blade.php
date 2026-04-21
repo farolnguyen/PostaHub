@@ -1,8 +1,8 @@
 @csrf
 <div class="form-group">
-    <label for="user_id">Tac gia (User)</label>
+    <label for="user_id">Tác giả (User)</label>
     <select id="user_id" name="user_id" class="form-control @error('user_id') is-invalid @enderror" required>
-        <option value="">-- Chon user --</option>
+        <option value="">— Chọn user —</option>
         @foreach($users as $user)
             <option value="{{ $user->id }}" @selected(old('user_id', $post->user_id ?? '') == $user->id)>
                 #{{ $user->id }} - {{ $user->name }} ({{ $user->email }})
@@ -13,15 +13,19 @@
 </div>
 
 <div class="form-group">
-    <label for="title">Tieu de</label>
+    <label for="title">Tiêu đề</label>
     <input type="text" id="title" name="title" value="{{ old('title', $post->title ?? '') }}" class="form-control @error('title') is-invalid @enderror" required>
     @error('title')<div class="invalid-feedback">{{ $message }}</div>@enderror
 </div>
 
+@php
+    $slugPreviewSource = old('title', isset($post) ? $post->title : '');
+    $slugPreviewValue = $slugPreviewSource !== '' ? (\Illuminate\Support\Str::slug($slugPreviewSource, '-', 'vi') ?: 'bai-viet') : '';
+@endphp
 <div class="form-group">
-    <label for="url">URL slug</label>
-    <input type="text" id="url" name="url" value="{{ old('url', $post->url ?? '') }}" class="form-control @error('url') is-invalid @enderror" required>
-    @error('url')<div class="invalid-feedback">{{ $message }}</div>@enderror
+    <label for="post-url-slug-preview">URL slug (xem trước — tự động khi lưu)</label>
+    <input type="text" id="post-url-slug-preview" class="form-control bg-light" readonly tabindex="-1" autocomplete="off" value="{{ $slugPreviewValue }}">
+    <small class="form-text text-muted">Ô này chỉ hiển thị theo tiêu đề; khi lưu, hệ thống có thể thêm <code>-2</code>, <code>-3</code>… nếu trùng slug. @isset($post)Đổi tiêu đề sẽ đổi đường dẫn công khai.@endisset</small>
 </div>
 
 <div class="form-group">
@@ -31,22 +35,150 @@
 </div>
 
 <div class="form-group">
-    <label for="thumbnail_file">Hoac upload thumbnail</label>
+    <label for="thumbnail_file">Hoặc tải thumbnail lên</label>
     <input type="file" id="thumbnail_file" name="thumbnail_file" class="form-control-file @error('thumbnail_file') is-invalid @enderror" accept="image/*">
     @error('thumbnail_file')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
 </div>
 
 <div class="form-group">
-    <label for="media_images">Media images (nhieu anh)</label>
-    <input type="file" id="media_images" name="media_images[]" class="form-control-file @error('media_images.*') is-invalid @enderror" accept="image/*" multiple>
+    <label>Tải ảnh lên cho bài viết (tối đa 5 ảnh)</label>
+    <div class="js-media-inputs" data-max-files="5">
+        <input type="file" name="media_images[]" class="form-control-file @error('media_images.*') is-invalid @enderror mb-2" accept="image/*">
+    </div>
     @error('media_images.*')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
+    @error('media_images')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
 </div>
 
 <div class="form-group">
-    <label for="content">Noi dung</label>
-    <textarea id="content" name="content" rows="8" class="form-control @error('content') is-invalid @enderror" required>{{ old('content', $post->content ?? '') }}</textarea>
+    <label for="content">Nội dung</label>
+    <textarea id="content" name="content" rows="8" class="form-control @error('content') is-invalid @enderror">{{ old('content', isset($post) ? $post->content : '') }}</textarea>
     @error('content')<div class="invalid-feedback">{{ $message }}</div>@enderror
 </div>
 
 <button type="submit" class="btn btn-primary">{{ $submitLabel }}</button>
-<a href="{{ route('admin.post.index') }}" class="btn btn-outline-secondary ml-2">Quay lai</a>
+<a href="{{ route('admin.post.index') }}" class="btn btn-outline-secondary ml-2">Quay lại</a>
+
+<script>
+(function () {
+    var titleEl = document.getElementById('title');
+    var slugEl = document.getElementById('post-url-slug-preview');
+    if (!titleEl || !slugEl) {
+        return;
+    }
+    var previewUrl = @json(route('post.slug-preview'));
+    var timer;
+    function refreshSlugPreview() {
+        var qs = new URLSearchParams({ title: titleEl.value }).toString();
+        fetch(previewUrl + '?' + qs, {
+            headers: { Accept: 'application/json', 'X-Requested-With': 'XMLHttpRequest' },
+            credentials: 'same-origin',
+        })
+            .then(function (r) { return r.json(); })
+            .then(function (data) {
+                slugEl.value = data.slug != null ? data.slug : '';
+            })
+            .catch(function () {});
+    }
+    titleEl.addEventListener('input', function () {
+        clearTimeout(timer);
+        timer = setTimeout(refreshSlugPreview, 120);
+    });
+    refreshSlugPreview();
+})();
+
+(function () {
+    function initDynamicMediaInputs(root) {
+        root.querySelectorAll('.js-media-inputs').forEach(function (container) {
+            var maxFiles = parseInt(container.dataset.maxFiles || '5', 10);
+            var baseClass = 'form-control-file';
+
+            function buildPreviewItem(input) {
+                if (input.dataset.enhanced === '1') {
+                    return;
+                }
+
+                var item = document.createElement('div');
+                item.className = 'd-flex align-items-start mb-2 js-media-item';
+
+                var left = document.createElement('div');
+                left.className = 'mr-2';
+                input.classList.remove('mb-2');
+                input.classList.add(baseClass);
+                left.appendChild(input);
+
+                var preview = document.createElement('img');
+                preview.alt = 'preview';
+                preview.style.maxWidth = '64px';
+                preview.style.maxHeight = '64px';
+                preview.className = 'rounded border d-none';
+                left.appendChild(preview);
+
+                var removeBtn = document.createElement('button');
+                removeBtn.type = 'button';
+                removeBtn.className = 'btn btn-sm btn-outline-danger';
+                removeBtn.textContent = 'Xóa';
+                removeBtn.addEventListener('click', function () {
+                    item.remove();
+                    refresh();
+                });
+
+                input.addEventListener('change', function () {
+                    if (input.files && input.files[0]) {
+                        preview.src = URL.createObjectURL(input.files[0]);
+                        preview.classList.remove('d-none');
+                    } else {
+                        preview.removeAttribute('src');
+                        preview.classList.add('d-none');
+                    }
+                    refresh();
+                });
+
+                item.appendChild(left);
+                item.appendChild(removeBtn);
+                container.appendChild(item);
+                input.dataset.enhanced = '1';
+            }
+
+            function createInput() {
+                var input = document.createElement('input');
+                input.type = 'file';
+                input.name = 'media_images[]';
+                input.accept = 'image/*';
+                return input;
+            }
+
+            function refresh() {
+                var items = Array.from(container.querySelectorAll('.js-media-item'));
+                var inputs = items
+                    .map(function (item) { return item.querySelector('input[type="file"]'); })
+                    .filter(Boolean);
+                var hasEmpty = inputs.some(function (input) { return !input.value; });
+
+                if (!hasEmpty && inputs.length < maxFiles) {
+                    buildPreviewItem(createInput());
+                    items = Array.from(container.querySelectorAll('.js-media-item'));
+                }
+
+                items.forEach(function (item) {
+                    var btn = item.querySelector('button');
+                    var input = item.querySelector('input[type="file"]');
+                    if (!btn) return;
+                    var hasValue = !!(input && input.value);
+                    btn.disabled = !hasValue;
+                    btn.classList.toggle('invisible', !hasValue);
+                });
+            }
+
+            var existingInputs = Array.from(container.querySelectorAll('input[type="file"]'));
+            container.innerHTML = '';
+            if (existingInputs.length === 0) {
+                existingInputs = [createInput()];
+            }
+            existingInputs.forEach(buildPreviewItem);
+            refresh();
+        });
+    }
+
+    initDynamicMediaInputs(document);
+})();
+</script>

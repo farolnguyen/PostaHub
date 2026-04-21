@@ -37,6 +37,6 @@ class RuleController extends Controller
 
         return redirect()
             ->route('admin.rule.index')
-            ->with('status', 'Da cap nhat quyen cho '.$user->name.'.');
+            ->with('status', 'Đã cập nhật quyền cho '.$user->name.'.');
     }
 }

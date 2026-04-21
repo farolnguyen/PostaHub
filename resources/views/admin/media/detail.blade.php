@@ -9,6 +9,7 @@
           crossorigin="anonymous">
 </head>
 <body class="bg-light">
+@include('partials.site-header')
 <div class="container py-4">
     @if(session('status'))
         <div class="alert alert-success">{{ session('status') }}</div>
@@ -30,16 +31,16 @@
                 @endif
             </p>
 
-            <img src="{{ $media->path }}" alt="media" class="img-fluid rounded border" style="max-width:320px;">
+            <img src="{{ $media->path }}" alt="media" class="img-fluid rounded border" style="max-width:320px;" onerror="this.onerror=null;this.src='{{ asset('images/image-fallback.png') }}';">
 
             <hr>
             <a href="{{ route('admin.media.edit', $media) }}" class="btn btn-primary">Edit</a>
-            <form action="{{ route('admin.media.delete', $media) }}" method="post" class="d-inline" onsubmit="return confirm('Ban chac chan muon xoa media nay?');">
+            <form action="{{ route('admin.media.delete', $media) }}" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa media này?');">
                 @csrf
                 @method('DELETE')
                 <button type="submit" class="btn btn-danger ml-2">Delete</button>
             </form>
-            <a href="{{ route('admin.media.index') }}" class="btn btn-outline-secondary ml-2">Danh sach media</a>
+            <a href="{{ route('admin.media.index') }}" class="btn btn-outline-secondary ml-2">Danh sách media</a>
         </div>
     </div>
 </div>
