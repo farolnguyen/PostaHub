@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Comment;
 use App\Models\Post;
 use App\Models\User;
+use App\Support\SiteCache;
+use App\Support\UploadErrorLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
@@ -35,6 +37,7 @@ class CommentController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        UploadErrorLogger::logFromPhpFiles(['media_images'], __METHOD__);
         $validated = $this->validateRequest($request, true);
 
         $target = $this->resolveTarget($validated['target_type'], (int) $validated['target_id']);
@@ -49,6 +52,7 @@ class CommentController extends Controller
         ]);
 
         $this->storeCommentMedia($comment, $request->file('media_images', []));
+        SiteCache::bumpAll();
 
         return redirect()->route('admin.comment.index')->with('status', 'Admin đã tạo bình luận thành công.');
     }
@@ -65,6 +69,7 @@ class CommentController extends Controller
 
     public function update(Request $request, Comment $comment): RedirectResponse
     {
+        UploadErrorLogger::logFromPhpFiles(['media_images'], __METHOD__);
         $validated = $this->validateRequest($request, false);
 
         $target = $this->resolveTarget($validated['target_type'], (int) $validated['target_id']);
@@ -81,6 +86,7 @@ class CommentController extends Controller
         ]);
 
         $this->storeCommentMedia($comment, $request->file('media_images', []));
+        SiteCache::bumpAll();
 
         return redirect()->route('admin.comment.index')->with('status', 'Admin đã cập nhật bình luận thành công.');
     }
@@ -95,6 +101,7 @@ class CommentController extends Controller
         }
 
         $comment->delete();
+        SiteCache::bumpAll();
 
         return redirect()->route('admin.comment.index')->with('status', 'Admin đã xóa bình luận.');
     }
@@ -107,7 +114,7 @@ class CommentController extends Controller
             'target_id' => ['required', 'integer'],
             'content' => ['required', 'string', 'min:2'],
             'media_images' => ['nullable', 'array', 'max:5'],
-            'media_images.*' => ['image', 'max:4096'],
+            'media_images.*' => ['file', 'mimetypes:image/jpeg,image/png,image/gif,image/webp,image/bmp,image/svg+xml,video/mp4,video/webm,video/ogg,audio/mpeg,audio/mp3,audio/wav,audio/ogg,audio/webm,audio/mp4,audio/x-m4a', 'max:102400'],
         ]);
     }
 

@@ -63,7 +63,8 @@ Trạng thái hiện tại:
 - Đã hoàn thành login/register/logout/forgot-password cho user và admin.
 - Đã tạo trang `mypage` tạm và `admin dashboard` tạm để test redirect.
 - Đã test pass các luồng register/login cho user và admin.
-- [ ] Chưa triển khai luồng xác thực email (email verification), nên cột `email_verified_at` hiện chưa được cập nhật tự động.
+- [x] Đã bổ sung email verification cho user + admin; trong đó admin bắt buộc verify để vào khu vực quản trị, user vẫn dùng bình thường và có thể tự verify từ hồ sơ khi cần.
+- [x] Bổ sung khả năng để admin tương tác ở luồng public như user (đăng bài/bình luận/like trên public) thông qua cơ chế ánh xạ actor về `users` để đảm bảo tương thích FK hiện có.
 
 Output:
 - Đăng nhập user/admin độc lập, không nhầm quyền.
@@ -99,6 +100,8 @@ Tiến độ hiện tại (Phase C):
 - [x] C10: Đồng bộ UX upload media đa ảnh cho post/comment: thêm dần input file, preview ảnh, nút xóa từng dòng, giới hạn tối đa 5 ảnh.
 - [x] C11: Cải thiện hiển thị ảnh: render ảnh từ URL/upload trực tiếp và thêm fallback ảnh lỗi (`public/images/image-fallback.png`).
 - [x] C12: Bỏ input URL ảnh riêng ở comment; hỗ trợ nhúng URL ảnh trực tiếp trong nội dung bình luận (auto render `<img>` khi lưu).
+- [x] C13: Mở rộng media toàn site từ chỉ ảnh sang ảnh + video + âm thanh (user/admin), cập nhật validate upload, input `accept`, và render player tương ứng (`img/video/audio`) theo MIME.
+- [x] C14: Fix UX upload media sau khi mở rộng video/audio: dynamic browse sinh thêm ổn định theo `input.files.length`; bổ sung hướng dẫn xử lý lỗi `The POST data is too large` (tăng `upload_max_filesize` / `post_max_size` trong `php.ini`) trong README.
 
 Lưu ý bảo mật:
 - Hiện tại post/comment detail đang render HTML bằng cú pháp raw (`{!! ... !!}`) để hiển thị đúng nội dung từ CKEditor.
@@ -145,7 +148,7 @@ Việc cần làm:
 - [x] Gửi email cho admin khi có backup mới bằng queue job (`SendUserBackupReadyEmailJob` + `UserBackupReadyMail`).
 - [x] Cấu hình scheduler chạy `app:backup-users` hàng ngày lúc `01:00`.
 - [x] Bổ sung hướng dẫn crontab Linux chạy `php artisan schedule:run` mỗi phút trong `README.md` (thiết lập thực tế trên server cần thao tác thủ công).
-- [ ] Vận hành thủ công trên máy/server: cấu hình mail trong `.env`, chạy `php artisan queue:work` (hoặc supervisor) để job gửi mail được xử lý, thêm crontab gọi `schedule:run` mỗi phút.
+- [x] Vận hành thủ công trên máy/server: đã cấu hình mail trong `.env`, chạy `php artisan queue:work` (hoặc supervisor), thêm crontab gọi `schedule:run` mỗi phút.
 
 Output:
 - Hệ thống có log rõ ràng + backup tự động + thông báo email.
@@ -155,12 +158,12 @@ Mục tiêu:
 - Tăng tốc độ tải trang và truy vấn.
 
 Việc cần làm:
-- Cache homepage, post detail, thống kê mypage.
-- Invalidate cache khi create/update/delete post/comment/like.
-- Kiểm thử tính nhất quán dữ liệu sau invalidate.
+- [x] Cache homepage feed (`/`), post detail và các trang thống kê mypage (post/like/profile) bằng `Cache::remember` theo key version.
+- [x] Invalidate cache khi create/update/delete post/comment/like bằng cơ chế tăng version (`App\Support\SiteCache::bumpAll()`).
+- [x] Kiểm thử tính nhất quán dữ liệu sau invalidate (thay đổi dữ liệu -> version tăng -> key cache mới được sinh).
 
 Output:
-- Site nhanh hơn, dữ liệu cập nhật đúng.
+- Site nhanh hơn, dữ liệu cập nhật đúng theo cơ chế cache versioning.
 
 ## 5) Tiêu chuẩn hoàn thành (Definition of Done)
 - Tất cả route trong sitemap truy cập đúng.
@@ -190,3 +193,23 @@ Output:
 ## 8) Ghi chú
 - File này là kế hoạch và checklist. Cập nhật dấu `[ ]` → `[x]` sau mỗi mục hoàn thành.
 - Nếu đổi phạm vi hoặc đổi ưu tiên, cập nhật trực tiếp vào các Phase.
+
+## 9) Phase cuối cùng để chốt theo đề (Final Wrap-up)
+Mục tiêu:
+- Đóng các điểm còn lại để bám sát `project_rule.md` và hoàn thiện hồ sơ bàn giao/demo.
+
+Checklist thực hiện:
+- [x] FW1: Hoàn tất yêu cầu `Sử dụng Component để tạo form input` (chuẩn hóa các input chính thành Blade Component dùng lại được ở form user/admin).
+  - [x] Đã tạo component dùng chung `resources/views/components/form/input.blade.php` và áp dụng cho các input text chính (`title`, `thumbnail`) ở form post user/admin.
+  - [x] Mở rộng bộ component form gồm `input`, `select`, `textarea`, `checkbox`; áp dụng thêm cho nhóm form auth user/admin và `admin/comment/_form` để giảm lặp code.
+- [ ] FW2: Rà soát và chốt phạm vi `Cache cho toàn site` theo hướng an toàn vận hành:
+  - Nếu không cache một số trang (auth/admin động), ghi rõ lý do trong tài liệu.
+  - Nếu cần bám sát literal "toàn site", bổ sung cache cho các trang list còn lại phù hợp.
+- [ ] FW3: Chạy smoke test toàn sitemap theo đề (public, mypage, admin, export/import, rule, backup/schedule, queue mail) và lưu checklist test pass.
+- [ ] FW4: Rà soát bảo mật đầu ra HTML CKEditor (XSS): tối thiểu ghi chú trạng thái + hướng xử lý sanitize (whitelist tag) trong tài liệu.
+- [ ] FW5: Chốt tài liệu bàn giao:
+  - Cập nhật `README.md` phần setup chạy thực tế (queue worker, cron, storage link, php.ini upload lớn).
+  - Cập nhật `progess.md` từ `[ ]` sang `[x]` cho các mục FW sau khi hoàn tất.
+
+Kết quả mong đợi:
+- Dự án bám sát yêu cầu đề bài, có checklist test rõ ràng và tài liệu đủ để demo/chấm điểm.

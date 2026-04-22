@@ -31,21 +31,21 @@
                 <div class="row mb-3">
                     @foreach($post->media as $media)
                         <div class="col-md-3 mb-2">
-                            <img src="{{ $media->path }}" alt="post media" class="img-fluid rounded border" onerror="this.onerror=null;this.src='{{ asset('images/image-fallback.png') }}';">
+                            @include('partials.media-preview', ['media' => $media, 'alt' => 'post media', 'class' => 'img-fluid rounded border'])
                         </div>
                     @endforeach
                 </div>
             @endif
             <hr>
             <div>{!! $post->content !!}</div>
-            @auth('web')
+            @if (auth('web')->check() || auth('admin')->check())
                 <form action="{{ route('like.toggle', $post) }}" method="post" class="mt-3">
                     @csrf
                     <button type="submit" class="btn {{ $hasLiked ? 'btn-outline-danger' : 'btn-outline-primary' }}">
                         {{ $hasLiked ? 'Bỏ thích' : 'Thích bài viết' }}
                     </button>
                 </form>
-            @endauth
+            @endif
         </div>
     </div>
 
@@ -53,8 +53,8 @@
         <div class="card-body">
             <h2 class="h5 mb-3">Thảo luận</h2>
 
-            @auth('web')
-                @can('create', \App\Models\Comment::class)
+            @if (auth('web')->check() || auth('admin')->check())
+                @if (auth('admin')->check() || auth('web')->user()?->can('create', \App\Models\Comment::class))
                     <form action="{{ route('comment.store.post', $post) }}" method="post" class="mb-4" enctype="multipart/form-data">
                         @csrf
                         <div class="form-group">
@@ -65,9 +65,9 @@
                             @enderror
                         </div>
                         <div class="form-group">
-                            <label>Tải ảnh lên cho bình luận (tối đa 5 ảnh)</label>
+                            <label>Tải media (ảnh/video/âm thanh) cho bình luận (tối đa 5 file)</label>
                             <div class="js-media-inputs" data-max-files="5">
-                                <input type="file" name="media_images[]" class="form-control-file @error('media_images.*') is-invalid @enderror mb-2" accept="image/*">
+                                <input type="file" name="media_images[]" class="form-control-file @error('media_images.*') is-invalid @enderror mb-2" accept="image/*,video/*,audio/*">
                             </div>
                             @error('media_images.*')
                                 <div class="text-danger small mt-1">{{ $message }}</div>
@@ -78,12 +78,12 @@
                         </div>
                         <button type="submit" class="btn btn-primary">Gửi bình luận</button>
                     </form>
-                @else
+                @elseif(auth('web')->check())
                     <p class="text-muted mb-4">Tài khoản của bạn không được phép bình luận (can_comment = false).</p>
-                @endcan
+                @endif
             @else
                 <p class="text-muted">Bạn cần <a href="{{ route('user.login.form') }}">đăng nhập</a> để bình luận.</p>
-            @endauth
+            @endif
 
             @forelse($post->comments as $comment)
                 @include('post.partials.comment-item', ['comment' => $comment, 'depth' => 0])
@@ -151,7 +151,7 @@
                 var input = document.createElement('input');
                 input.type = 'file';
                 input.name = 'media_images[]';
-                input.accept = 'image/*';
+                input.accept = 'image/*,video/*,audio/*';
                 return input;
             }
 
@@ -160,7 +160,7 @@
                 var inputs = items
                     .map(function (item) { return item.querySelector('input[type="file"]'); })
                     .filter(Boolean);
-                var hasEmpty = inputs.some(function (input) { return !input.value; });
+                var hasEmpty = inputs.some(function (input) { return !(input.files && input.files.length); });
 
                 if (!hasEmpty && inputs.length < maxFiles) {
                     buildPreviewItem(createInput());
@@ -174,7 +174,7 @@
                     var btn = item.querySelector('button');
                     var input = item.querySelector('input[type="file"]');
                     if (!btn) return;
-                    var hasValue = !!(input && input.value);
+                    var hasValue = !!(input && input.files && input.files.length);
                     btn.disabled = !hasValue;
                     btn.classList.toggle('invisible', !hasValue);
                 });

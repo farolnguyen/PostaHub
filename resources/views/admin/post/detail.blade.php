@@ -26,7 +26,7 @@
                 <div class="row mb-3">
                     @foreach($post->media as $media)
                         <div class="col-md-3 mb-2">
-                            <img src="{{ $media->path }}" alt="post media" class="img-fluid rounded border" onerror="this.onerror=null;this.src='{{ asset('images/image-fallback.png') }}';">
+                            @include('partials.media-preview', ['media' => $media, 'alt' => 'post media', 'class' => 'img-fluid rounded border'])
                         </div>
                     @endforeach
                 </div>

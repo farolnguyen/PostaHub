@@ -24,10 +24,7 @@
 
         <form method="post" action="{{ route('admin.password.email') }}">
             @csrf
-            <div class="form-group">
-                <label>Email admin</label>
-                <input type="email" name="email" value="{{ old('email') }}" class="form-control" required>
-            </div>
+            <x-form.input name="email" label="Email admin" type="email" required />
             <button type="submit" class="btn btn-primary btn-block">Gửi link reset</button>
         </form>
 

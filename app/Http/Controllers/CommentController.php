@@ -6,9 +6,10 @@ use App\Http\Requests\Comment\StoreCommentRequest;
 use App\Http\Requests\Comment\UpdateCommentRequest;
 use App\Models\Comment;
 use App\Models\Post;
+use App\Support\ActorUserResolver;
+use App\Support\SiteCache;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 
 class CommentController extends Controller
@@ -16,13 +17,16 @@ class CommentController extends Controller
     public function storeForPost(StoreCommentRequest $request, Post $post): RedirectResponse
     {
         $this->authorize('create', Comment::class);
+        $actor = ActorUserResolver::current();
+        abort_if($actor === null, 403);
 
         $comment = $post->comments()->create([
-            'user_id' => Auth::id(),
+            'user_id' => $actor->id,
             'content' => $this->embedImageUrls($request->validated('content')),
             'image' => null,
         ]);
         $this->storeCommentMedia($comment, $request->file('media_images', []));
+        SiteCache::bumpAll();
 
         return back()->with('status', 'Đã thêm bình luận cho bài viết.');
     }
@@ -30,13 +34,16 @@ class CommentController extends Controller
     public function storeReply(StoreCommentRequest $request, Comment $comment): RedirectResponse
     {
         $this->authorize('create', Comment::class);
+        $actor = ActorUserResolver::current();
+        abort_if($actor === null, 403);
 
         $reply = $comment->comments()->create([
-            'user_id' => Auth::id(),
+            'user_id' => $actor->id,
             'content' => $this->embedImageUrls($request->validated('content')),
             'image' => null,
         ]);
         $this->storeCommentMedia($reply, $request->file('media_images', []));
+        SiteCache::bumpAll();
 
         return back()->with('status', 'Đã trả lời bình luận.');
     }
@@ -58,6 +65,7 @@ class CommentController extends Controller
 
         $comment->update($data);
         $this->storeCommentMedia($comment, $request->file('media_images', []));
+        SiteCache::bumpAll();
 
         return $this->redirectToCommentSource($comment)
             ->with('status', 'Đã cập nhật bình luận.');
@@ -69,6 +77,7 @@ class CommentController extends Controller
 
         $redirect = $this->redirectToCommentSource($comment);
         $comment->delete();
+        SiteCache::bumpAll();
 
         return $redirect->with('status', 'Đã xóa bình luận.');
     }
@@ -121,4 +130,3 @@ class CommentController extends Controller
         }
     }
 }
-

@@ -104,6 +104,11 @@ Mo trinh duyet: `http://127.0.0.1:8000`
 - Tren Linux server, them crontab de Laravel scheduler duoc kich hoat moi phut:
   - `* * * * * cd /duong-dan/PostaHub && php artisan schedule:run >> /dev/null 2>&1`
 
+## Ghi chu upload media lon (video/audio)
+- He thong da ho tro upload media `image/*`, `video/*`, `audio/*` cho post/comment (user + admin).
+- Neu gap loi `The POST data is too large`, can tang gioi han PHP (`upload_max_filesize`, `post_max_size`) trong file `php.ini` cua moi truong dang chay (CLI/FPM), sau do restart service tuong ung.
+- Goi y local khi chay `php artisan serve`: `upload_max_filesize=64M`, `post_max_size=80M`.
+
 ## Cau truc du lieu hien tai
 - `users`, `admins`
 - `posts`

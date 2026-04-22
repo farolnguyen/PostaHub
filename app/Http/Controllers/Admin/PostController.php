@@ -7,6 +7,7 @@ use App\Http\Requests\Post\StorePostRequest;
 use App\Http\Requests\Post\UpdatePostRequest;
 use App\Models\Post;
 use App\Models\User;
+use App\Support\SiteCache;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
@@ -53,6 +54,7 @@ class PostController extends Controller
 
         $post = Post::create($data);
         $this->storePostMedia($post, $request->file('media_images', []));
+        SiteCache::bumpAll();
 
         return redirect()
             ->route('admin.post.index')
@@ -87,6 +89,7 @@ class PostController extends Controller
 
         $post->update($data);
         $this->storePostMedia($post, $request->file('media_images', []));
+        SiteCache::bumpAll();
 
         return redirect()
             ->route('admin.post.index')
@@ -96,6 +99,7 @@ class PostController extends Controller
     public function destroy(Post $post): RedirectResponse
     {
         $post->delete();
+        SiteCache::bumpAll();
 
         return redirect()
             ->route('admin.post.index')

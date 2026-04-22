@@ -5,7 +5,6 @@ namespace App\Http\Controllers\Admin;
 use App\Http\Controllers\Controller;
 use App\Models\Post;
 use App\Models\User;
-use Illuminate\Support\Carbon;
 use OpenSpout\Common\Entity\Row;
 use OpenSpout\Writer\XLSX\Writer;
 use Symfony\Component\HttpFoundation\BinaryFileResponse;
@@ -16,7 +15,7 @@ class ExportController extends Controller
     /**
      * @var list<string>
      */
-    private const USER_HEADERS = ['id', 'name', 'email', 'email_verified_at', 'password', 'remember_token'];
+    private const USER_HEADERS = ['id', 'name', 'email', 'password', 'remember_token'];
 
     /**
      * @var list<string>
@@ -32,6 +31,7 @@ class ExportController extends Controller
             if ($out === false) {
                 return;
             }
+
             fwrite($out, "\xEF\xBB\xBF");
             fputcsv($out, self::USER_HEADERS);
             User::query()->orderBy('id')->chunk(200, function ($users) use ($out): void {
@@ -73,6 +73,7 @@ class ExportController extends Controller
             if ($out === false) {
                 return;
             }
+
             fwrite($out, "\xEF\xBB\xBF");
             fputcsv($out, self::POST_HEADERS);
             Post::query()->orderBy('id')->chunk(100, function ($posts) use ($out): void {
@@ -124,7 +125,6 @@ class ExportController extends Controller
             (string) $user->id,
             $user->name,
             $user->email,
-            $this->formatDateTime($user->email_verified_at),
             $user->password,
             $user->remember_token ?? '',
         ];
@@ -161,18 +161,6 @@ class ExportController extends Controller
     private function postToScalarRow(Post $post): array
     {
         return $this->postToCsvValues($post);
-    }
-
-    private function formatDateTime(mixed $value): ?string
-    {
-        if ($value === null) {
-            return null;
-        }
-        if ($value instanceof Carbon) {
-            return $value->format('Y-m-d H:i:s');
-        }
-
-        return (string) $value;
     }
 
     private function cleanHtmlContent(string $html): string

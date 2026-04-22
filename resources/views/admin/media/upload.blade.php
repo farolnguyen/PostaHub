@@ -42,8 +42,8 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="file">File ảnh</label>
-                    <input type="file" id="file" name="file" class="form-control-file" accept="image/*" required>
+                    <label for="file">File media (ảnh/video/âm thanh)</label>
+                    <input type="file" id="file" name="file" class="form-control-file" accept="image/*,video/*,audio/*" required>
                 </div>
 
                 <button type="submit" class="btn btn-primary">Tải lên</button>

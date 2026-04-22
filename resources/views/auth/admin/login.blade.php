@@ -19,27 +19,9 @@
 
             <form method="post" action="{{ route('admin.login.submit') }}">
                 @csrf
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" name="email" id="email" value="{{ old('email') }}"
-                           class="form-control @error('email') is-invalid @enderror" required autofocus>
-                    @error('email')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
-                <div class="form-group">
-                    <label for="password">Mật khẩu</label>
-                    <input type="password" name="password" id="password"
-                           class="form-control @error('password') is-invalid @enderror" required>
-                    @error('password')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
-                <div class="form-group form-check">
-                    <input type="checkbox" name="remember" id="remember" value="1"
-                           class="form-check-input" {{ old('remember') ? 'checked' : '' }}>
-                    <label class="form-check-label" for="remember">Ghi nhớ đăng nhập</label>
-                </div>
+                <x-form.input name="email" label="Email" type="email" required autofocus />
+                <x-form.input name="password" label="Mật khẩu" type="password" required />
+                <x-form.checkbox name="remember" label="Ghi nhớ đăng nhập" />
                 <button type="submit" class="btn btn-primary btn-block">Đăng nhập</button>
             </form>
 

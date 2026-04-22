@@ -1,9 +1,10 @@
 @csrf
-<div class="form-group">
-    <label for="title">Tiêu đề</label>
-    <input type="text" id="title" name="title" value="{{ old('title', $post->title ?? '') }}" class="form-control @error('title') is-invalid @enderror" required>
-    @error('title')<div class="invalid-feedback">{{ $message }}</div>@enderror
-</div>
+<x-form.input
+    name="title"
+    label="Tiêu đề"
+    :value="$post->title ?? ''"
+    required
+/>
 
 @php
     $slugPreviewSource = old('title', isset($post) ? $post->title : '');
@@ -12,21 +13,20 @@
 <div class="form-group">
     <label for="post-url-slug-preview">URL slug (xem trước — tự động khi lưu)</label>
     <input type="text" id="post-url-slug-preview" class="form-control bg-light" readonly tabindex="-1" autocomplete="off" value="{{ $slugPreviewValue }}">
-    <small class="form-text text-muted">Ô này chỉ hiển thị theo tiêu đề; khi lưu, hệ thống có thể thêm <code>-2</code>, <code>-3</code>… nếu trùng slug. @isset($post)Đổi tiêu đề sẽ đổi đường dẫn công khai.@endisset</small>
 </div>
 
-<div class="form-group">
-    <label for="thumbnail">Thumbnail (đường dẫn ảnh)</label>
-    <input type="text" id="thumbnail" name="thumbnail" value="{{ old('thumbnail', $post->thumbnail ?? '') }}" class="form-control @error('thumbnail') is-invalid @enderror">
-    @error('thumbnail')<div class="invalid-feedback">{{ $message }}</div>@enderror
-</div>
+<x-form.input
+    name="thumbnail"
+    label="Thumbnail (đường dẫn ảnh)"
+    :value="$post->thumbnail ?? ''"
+/>
 
 
 
 <div class="form-group">
-    <label>Hoặc tải Thumbnail lên cho bài viết (tối đa 5 ảnh)</label>
+    <label>Tải media đính kèm cho bài viết (tối đa 5 file ảnh/video/âm thanh)</label>
     <div class="js-media-inputs" data-max-files="5">
-        <input type="file" name="media_images[]" class="form-control-file @error('media_images.*') is-invalid @enderror mb-2" accept="image/*">
+        <input type="file" name="media_images[]" class="form-control-file @error('media_images.*') is-invalid @enderror mb-2" accept="image/*,video/*,audio/*">
     </div>
     @error('media_images.*')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
     @error('media_images')<div class="text-danger small mt-1">{{ $message }}</div>@enderror
@@ -126,7 +126,7 @@
                 var input = document.createElement('input');
                 input.type = 'file';
                 input.name = 'media_images[]';
-                input.accept = 'image/*';
+                input.accept = 'image/*,video/*,audio/*';
                 return input;
             }
 
@@ -135,7 +135,7 @@
                 var inputs = items
                     .map(function (item) { return item.querySelector('input[type="file"]'); })
                     .filter(Boolean);
-                var hasEmpty = inputs.some(function (input) { return !input.value; });
+                var hasEmpty = inputs.some(function (input) { return !(input.files && input.files.length); });
 
                 if (!hasEmpty && inputs.length < maxFiles) {
                     buildPreviewItem(createInput());
@@ -146,7 +146,7 @@
                     var btn = item.querySelector('button');
                     var input = item.querySelector('input[type="file"]');
                     if (!btn) return;
-                    var hasValue = !!(input && input.value);
+                    var hasValue = !!(input && input.files && input.files.length);
                     btn.disabled = !hasValue;
                     btn.classList.toggle('invisible', !hasValue);
                 });

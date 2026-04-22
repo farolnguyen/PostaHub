@@ -19,35 +19,10 @@
 
             <form method="post" action="{{ route('user.register.submit') }}">
                 @csrf
-                <div class="form-group">
-                    <label for="name">Họ tên</label>
-                    <input type="text" name="name" id="name" value="{{ old('name') }}"
-                           class="form-control @error('name') is-invalid @enderror" required>
-                    @error('name')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
-                <div class="form-group">
-                    <label for="email">Email</label>
-                    <input type="email" name="email" id="email" value="{{ old('email') }}"
-                           class="form-control @error('email') is-invalid @enderror" required>
-                    @error('email')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
-                <div class="form-group">
-                    <label for="password">Mật khẩu</label>
-                    <input type="password" name="password" id="password"
-                           class="form-control @error('password') is-invalid @enderror" required>
-                    @error('password')
-                        <div class="invalid-feedback">{{ $message }}</div>
-                    @enderror
-                </div>
-                <div class="form-group">
-                    <label for="password_confirmation">Nhập lại mật khẩu</label>
-                    <input type="password" name="password_confirmation" id="password_confirmation"
-                           class="form-control" required>
-                </div>
+                <x-form.input name="name" label="Họ tên" required />
+                <x-form.input name="email" label="Email" type="email" required />
+                <x-form.input name="password" label="Mật khẩu" type="password" required />
+                <x-form.input name="password_confirmation" label="Nhập lại mật khẩu" type="password" required />
                 <button type="submit" class="btn btn-primary btn-block">Đăng ký</button>
             </form>
 

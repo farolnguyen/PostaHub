@@ -20,15 +20,15 @@
         <div class="row mt-2">
             @foreach($comment->media as $media)
                 <div class="col-md-3 mb-2">
-                    <img src="{{ $media->path }}" alt="comment media" class="img-fluid rounded border" onerror="this.onerror=null;this.src='{{ asset('images/image-fallback.png') }}';">
+                    @include('partials.media-preview', ['media' => $media, 'alt' => 'comment media', 'class' => 'img-fluid rounded border'])
                 </div>
             @endforeach
         </div>
     @endif
 
-    @auth('web')
+    @if (auth('web')->check() || auth('admin')->check())
         <div class="mt-3">
-            @can('create', \App\Models\Comment::class)
+            @if (auth('admin')->check() || auth('web')->user()?->can('create', \App\Models\Comment::class))
                 <details>
                     <summary class="small text-primary">Trả lời bình luận</summary>
                     <form action="{{ route('comment.store.reply', $comment) }}" method="post" class="mt-2" enctype="multipart/form-data">
@@ -38,31 +38,31 @@
                         </div>
                         <div class="form-group mb-2">
                             <div class="js-media-inputs" data-max-files="5">
-                                <input type="file" name="media_images[]" class="form-control-file mb-2" accept="image/*">
+                                <input type="file" name="media_images[]" class="form-control-file mb-2" accept="image/*,video/*,audio/*">
                             </div>
-                            <small class="text-muted">Tối đa 5 ảnh.</small>
+                            <small class="text-muted">Tối đa 5 file media.</small>
                         </div>
                         <button type="submit" class="btn btn-sm btn-outline-primary">Gửi trả lời</button>
                     </form>
                 </details>
-            @endcan
+            @endif
 
-            @if (auth('web')->user()?->can('update', $comment) || auth('web')->user()?->can('delete', $comment))
+            @if (auth('admin')->check() || auth('web')->user()?->can('update', $comment) || auth('web')->user()?->can('delete', $comment))
                 <div class="mt-2">
-                    @can('update', $comment)
+                    @if (auth('admin')->check() || auth('web')->user()?->can('update', $comment))
                         <a href="{{ route('comment.edit', $comment) }}" class="btn btn-sm btn-outline-secondary">Sửa</a>
-                    @endcan
-                    @can('delete', $comment)
+                    @endif
+                    @if (auth('admin')->check() || auth('web')->user()?->can('delete', $comment))
                         <form action="{{ route('comment.destroy', $comment) }}" method="post" class="d-inline" onsubmit="return confirm('Bạn có chắc chắn muốn xóa bình luận này?');">
                             @csrf
                             @method('DELETE')
                             <button type="submit" class="btn btn-sm btn-outline-danger">Xóa</button>
                         </form>
-                    @endcan
+                    @endif
                 </div>
             @endif
         </div>
-    @endauth
+    @endif
 </div>
 
 @foreach($comment->comments as $child)

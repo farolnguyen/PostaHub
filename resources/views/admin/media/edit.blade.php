@@ -25,7 +25,9 @@
                 </div>
             @endif
 
-            <img src="{{ $media->path }}" alt="media" class="img-fluid rounded border mb-3" style="max-width:220px;" onerror="this.onerror=null;this.src='{{ asset('images/image-fallback.png') }}';">
+            <div class="mb-3">
+                @include('partials.media-preview', ['media' => $media, 'alt' => 'media', 'class' => 'img-fluid rounded border', 'style' => 'max-width:220px;'])
+            </div>
 
             <form action="{{ route('admin.media.update', $media) }}" method="post" enctype="multipart/form-data">
                 @csrf
@@ -50,8 +52,8 @@
                 </div>
 
                 <div class="form-group">
-                    <label for="file">Đổi file ảnh (tùy chọn)</label>
-                    <input type="file" id="file" name="file" class="form-control-file" accept="image/*">
+                    <label for="file">Đổi file media (ảnh/video/âm thanh) (tùy chọn)</label>
+                    <input type="file" id="file" name="file" class="form-control-file" accept="image/*,video/*,audio/*">
                 </div>
 
                 <button type="submit" class="btn btn-primary">Lưu cập nhật</button>

@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Comment;
 use App\Models\Media;
 use App\Models\Post;
+use App\Support\UploadErrorLogger;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
@@ -33,10 +34,11 @@ class MediaController extends Controller
 
     public function store(Request $request): RedirectResponse
     {
+        UploadErrorLogger::logFromPhpFiles(['file'], __METHOD__);
         $validated = $request->validate([
             'target_type' => ['required', 'in:post,comment'],
             'target_id' => ['required', 'integer'],
-            'file' => ['required', 'image', 'max:4096'],
+            'file' => ['required', 'file', 'mimetypes:image/jpeg,image/png,image/gif,image/webp,image/bmp,image/svg+xml,video/mp4,video/webm,video/ogg,audio/mpeg,audio/mp3,audio/wav,audio/ogg,audio/webm,audio/mp4,audio/x-m4a', 'max:102400'],
         ]);
 
         $target = $this->resolveTarget($validated['target_type'], (int) $validated['target_id']);
@@ -74,11 +76,12 @@ class MediaController extends Controller
 
     public function update(Request $request, Media $media): RedirectResponse
     {
+        UploadErrorLogger::logFromPhpFiles(['file'], __METHOD__);
         $validated = $request->validate([
             'target_type' => ['required', 'in:post,comment'],
             'target_id' => ['required', 'integer'],
             'type' => ['nullable', 'string', 'max:255'],
-            'file' => ['nullable', 'image', 'max:4096'],
+            'file' => ['nullable', 'file', 'mimetypes:image/jpeg,image/png,image/gif,image/webp,image/bmp,image/svg+xml,video/mp4,video/webm,video/ogg,audio/mpeg,audio/mp3,audio/wav,audio/ogg,audio/webm,audio/mp4,audio/x-m4a', 'max:102400'],
         ]);
 
         $target = $this->resolveTarget($validated['target_type'], (int) $validated['target_id']);

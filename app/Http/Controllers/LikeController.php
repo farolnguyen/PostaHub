@@ -3,14 +3,17 @@
 namespace App\Http\Controllers;
 
 use App\Models\Post;
+use App\Support\ActorUserResolver;
+use App\Support\SiteCache;
 use Illuminate\Http\RedirectResponse;
-use Illuminate\Support\Facades\Auth;
 
 class LikeController extends Controller
 {
     public function toggle(Post $post): RedirectResponse
     {
-        $userId = Auth::id();
+        $actor = ActorUserResolver::current();
+        abort_if($actor === null, 403);
+        $userId = $actor->id;
 
         $existingLike = $post->likes()
             ->where('user_id', $userId)
@@ -18,6 +21,7 @@ class LikeController extends Controller
 
         if ($existingLike) {
             $existingLike->delete();
+            SiteCache::bumpAll();
 
             return back()->with('status', 'Bạn đã bỏ thích bài viết.');
         }
@@ -25,8 +29,8 @@ class LikeController extends Controller
         $post->likes()->create([
             'user_id' => $userId,
         ]);
+        SiteCache::bumpAll();
 
         return back()->with('status', 'Bạn đã thích bài viết.');
     }
 }
-

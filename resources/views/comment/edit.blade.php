@@ -35,9 +35,9 @@
                 </div>
 
                 <div class="form-group">
-                    <label>Tải ảnh lên cho bình luận (tối đa 5 ảnh)</label>
+                    <label>Tải media cho bình luận (tối đa 5 file ảnh/video/âm thanh)</label>
                     <div class="js-media-inputs" data-max-files="5">
-                        <input type="file" name="media_images[]" class="form-control-file mb-2" accept="image/*">
+                        <input type="file" name="media_images[]" class="form-control-file mb-2" accept="image/*,video/*,audio/*">
                     </div>
                 </div>
 
@@ -105,7 +105,7 @@
                 var input = document.createElement('input');
                 input.type = 'file';
                 input.name = 'media_images[]';
-                input.accept = 'image/*';
+                input.accept = 'image/*,video/*,audio/*';
                 return input;
             }
 
@@ -114,7 +114,7 @@
                 var inputs = items
                     .map(function (item) { return item.querySelector('input[type="file"]'); })
                     .filter(Boolean);
-                var hasEmpty = inputs.some(function (input) { return !input.value; });
+                var hasEmpty = inputs.some(function (input) { return !(input.files && input.files.length); });
 
                 if (!hasEmpty && inputs.length < maxFiles) {
                     buildPreviewItem(createInput());
@@ -125,7 +125,7 @@
                     var btn = item.querySelector('button');
                     var input = item.querySelector('input[type="file"]');
                     if (!btn) return;
-                    var hasValue = !!(input && input.value);
+                    var hasValue = !!(input && input.files && input.files.length);
                     btn.disabled = !hasValue;
                     btn.classList.toggle('invisible', !hasValue);
                 });

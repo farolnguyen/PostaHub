@@ -13,7 +13,9 @@
 <div class="container py-4">
     <div class="card shadow-sm border-0 mb-4">
         <div class="card-body p-4">
-            <h1 class="h4 mb-2">Xin chào, {{ Auth::guard('web')->user()->name }}</h1>
+            <h1 class="h4 mb-2">
+                Xin chào, {{ auth('web')->user()->name ?? ('Admin '.(auth('admin')->user()->name ?? '')) }}
+            </h1>
             <p class="text-muted mb-0">Đây là khu vực cá nhân của bạn. Chọn một mục bên dưới để quản lý nội dung.</p>
         </div>
     </div>

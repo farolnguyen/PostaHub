@@ -16,6 +16,20 @@
         <a href="{{ route('user.index') }}" class="btn btn-outline-secondary">Quay lại</a>
     </div>
 
+    @if (session('status'))
+        <div class="alert alert-info">{{ session('status') }}</div>
+    @endif
+
+    @if (auth('web')->check() && ! auth('web')->user()->hasVerifiedEmail())
+        <div class="alert alert-warning d-flex flex-wrap align-items-center justify-content-between">
+            <div class="mr-2">Tài khoản của bạn chưa xác thực email. Bạn vẫn có thể sử dụng hệ thống, nhưng nên xác thực để tăng độ an toàn.</div>
+            <form method="post" action="{{ route('verification.send') }}" class="mt-2 mt-md-0">
+                @csrf
+                <button type="submit" class="btn btn-sm btn-primary">Gửi email xác thực</button>
+            </form>
+        </div>
+    @endif
+
     <div class="row">
         <div class="col-lg-6 mb-4">
             <div class="card shadow-sm h-100">

@@ -31,7 +31,7 @@
                 @endif
             </p>
 
-            <img src="{{ $media->path }}" alt="media" class="img-fluid rounded border" style="max-width:320px;" onerror="this.onerror=null;this.src='{{ asset('images/image-fallback.png') }}';">
+            @include('partials.media-preview', ['media' => $media, 'alt' => 'media', 'class' => 'img-fluid rounded border', 'style' => 'max-width:320px;'])
 
             <hr>
             <a href="{{ route('admin.media.edit', $media) }}" class="btn btn-primary">Edit</a>

@@ -21,20 +21,9 @@
             @csrf
             <input type="hidden" name="token" value="{{ $token }}">
 
-            <div class="form-group">
-                <label>Email admin</label>
-                <input type="email" name="email" value="{{ old('email', $email) }}" class="form-control" required>
-            </div>
-
-            <div class="form-group">
-                <label>Mật khẩu mới</label>
-                <input type="password" name="password" class="form-control" required>
-            </div>
-
-            <div class="form-group">
-                <label>Xác nhận mật khẩu</label>
-                <input type="password" name="password_confirmation" class="form-control" required>
-            </div>
+            <x-form.input name="email" label="Email admin" type="email" :value="$email" required />
+            <x-form.input name="password" label="Mật khẩu mới" type="password" required />
+            <x-form.input name="password_confirmation" label="Xác nhận mật khẩu" type="password" required />
 
             <button type="submit" class="btn btn-primary btn-block">Cập nhật mật khẩu</button>
         </form>

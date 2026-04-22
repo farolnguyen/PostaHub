@@ -41,7 +41,7 @@
                     <tr>
                         <td>{{ $media->id }}</td>
                         <td>
-                            <img src="{{ $media->path }}" alt="media" style="width:64px;height:64px;object-fit:cover;" class="rounded border" onerror="this.onerror=null;this.src='{{ asset('images/image-fallback.png') }}';">
+                            @include('partials.media-preview', ['media' => $media, 'alt' => 'media', 'class' => 'rounded border', 'style' => 'width:64px;height:64px;object-fit:cover;'])
                         </td>
                         <td>{{ $media->type ?: 'N/A' }}</td>
                         <td>
