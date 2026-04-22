@@ -94,6 +94,15 @@ Mo trinh duyet: `http://127.0.0.1:8000`
   - `php artisan optimize:clear`
 - Chay queue worker (khi can):
   - `php artisan queue:work`
+- Chay backup users thu cong:
+  - `php artisan app:backup-users`
+- Xem danh sach schedule:
+  - `php artisan schedule:list`
+
+## Scheduler va crontab (Phase F)
+- Da cau hinh scheduler: command `app:backup-users` chay hang ngay luc `01:00`.
+- Tren Linux server, them crontab de Laravel scheduler duoc kich hoat moi phut:
+  - `* * * * * cd /duong-dan/PostaHub && php artisan schedule:run >> /dev/null 2>&1`
 
 ## Cau truc du lieu hien tai
 - `users`, `admins`

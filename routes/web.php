@@ -1,24 +1,26 @@
 <?php
 
-use Illuminate\Support\Facades\Route;
-use App\Http\Controllers\Auth\UserAuthController;
-use App\Http\Controllers\Auth\UserRegisterController;
-use App\Http\Controllers\Auth\UserForgotPasswordController;
 use App\Http\Controllers\Admin\Auth\AdminAuthController;
-use App\Http\Controllers\Admin\Auth\AdminRegisterController;
 use App\Http\Controllers\Admin\Auth\AdminForgotPasswordController;
-use App\Http\Controllers\Mypage\PostController as MypagePostController;
+use App\Http\Controllers\Admin\Auth\AdminRegisterController;
+use App\Http\Controllers\Admin\CommentController as AdminCommentController;
+use App\Http\Controllers\Admin\ExportController as AdminExportController;
+use App\Http\Controllers\Admin\ImportController as AdminImportController;
+use App\Http\Controllers\Admin\MediaController as AdminMediaController;
 use App\Http\Controllers\Admin\PostController as AdminPostController;
-use App\Http\Controllers\PostDetailController;
+use App\Http\Controllers\Admin\RuleController as AdminRuleController;
+use App\Http\Controllers\Auth\UserAuthController;
+use App\Http\Controllers\Auth\UserForgotPasswordController;
+use App\Http\Controllers\Auth\UserRegisterController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\LikeController;
 use App\Http\Controllers\Mypage\LikeController as MypageLikeController;
+use App\Http\Controllers\Mypage\PostController as MypagePostController;
 use App\Http\Controllers\Mypage\ProfileController as MypageProfileController;
-use App\Http\Controllers\Admin\MediaController as AdminMediaController;
-use App\Http\Controllers\Admin\CommentController as AdminCommentController;
-use App\Http\Controllers\Admin\RuleController as AdminRuleController;
+use App\Http\Controllers\PostDetailController;
 use App\Http\Controllers\PostSlugPreviewController;
 use App\Models\Post;
+use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
     $posts = Post::query()
@@ -129,6 +131,19 @@ Route::prefix('admin')->name('admin.')->group(function () {
         Route::prefix('rule')->name('rule.')->group(function () {
             Route::get('/', [AdminRuleController::class, 'index'])->name('index');
             Route::put('/{user}', [AdminRuleController::class, 'update'])->name('update');
+        });
+
+        Route::prefix('export')->name('export.')->group(function () {
+            Route::get('/users.csv', [AdminExportController::class, 'usersCsv'])->name('users.csv');
+            Route::get('/users.xlsx', [AdminExportController::class, 'usersXlsx'])->name('users.xlsx');
+            Route::get('/posts.csv', [AdminExportController::class, 'postsCsv'])->name('posts.csv');
+            Route::get('/posts.xlsx', [AdminExportController::class, 'postsXlsx'])->name('posts.xlsx');
+        });
+
+        Route::prefix('import')->name('import.')->group(function () {
+            Route::get('/users', [AdminImportController::class, 'usersForm'])->name('users.form');
+            Route::post('/users', [AdminImportController::class, 'usersStore'])->name('users.store');
+            Route::get('/users/template.csv', [AdminImportController::class, 'usersTemplateCsv'])->name('users.template');
         });
     });
 });

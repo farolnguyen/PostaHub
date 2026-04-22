@@ -63,6 +63,7 @@ Trạng thái hiện tại:
 - Đã hoàn thành login/register/logout/forgot-password cho user và admin.
 - Đã tạo trang `mypage` tạm và `admin dashboard` tạm để test redirect.
 - Đã test pass các luồng register/login cho user và admin.
+- [ ] Chưa triển khai luồng xác thực email (email verification), nên cột `email_verified_at` hiện chưa được cập nhật tự động.
 
 Output:
 - Đăng nhập user/admin độc lập, không nhầm quyền.
@@ -125,10 +126,10 @@ Mục tiêu:
 - Xuất user + post ra CSV/Excel, import user từ CSV.
 
 Việc cần làm:
-- Export user (bỏ `created_at`, `updated_at`).
-- Export post (bỏ `created_at`, `updated_at`).
-- Import user từ CSV, có validate và thông báo lỗi dòng.
-- Giao diện admin cho export/import.
+- [x] Export user (bỏ `created_at`, `updated_at`): CSV stream + XLSX (OpenSpout), route `admin/export/users.csv|.xlsx`.
+- [x] Export post (bỏ `created_at`, `updated_at`): CSV stream + XLSX, route `admin/export/posts.csv|.xlsx`.
+- [x] Import user từ CSV: `UserCsvImportService` + Form Request, validate từng dòng, báo lỗi theo số dòng; tạo kèm `user_rules` mặc định theo cột tùy chọn.
+- [x] Giao diện admin `/admin/import/users` (upload + kết quả + link file mẫu + link nhanh export).
 
 Output:
 - Dữ liệu xuất/nhập đúng format và ổn định.
@@ -138,11 +139,13 @@ Mục tiêu:
 - Có cơ chế bắt lỗi, ghi log riêng cho mypage, và backup tự động.
 
 Việc cần làm:
-- Tạo custom Exception hoặc custom Logging channel `log_mypage`.
-- Ghi log có context (user_id, route, payload tối giản) cho lỗi mypage.
-- Tạo Artisan command backup bảng user hằng ngày ra CSV.
-- Gửi email cho admin khi có backup mới (queue job).
-- Cấu hình scheduler và crontab Linux mỗi phút.
+- [x] Tạo custom Logging channel `log_mypage` (daily log riêng tại `storage/logs/log_mypage.log`).
+- [x] Ghi log có context (user_id, route, path, method, input_keys) cho lỗi khu vực mypage qua `bootstrap/app.php` exception reporter.
+- [x] Tạo Artisan command `app:backup-users` để backup bảng `users` hằng ngày ra CSV (theo cấu hình disk `local` của Laravel 13: `storage/app/private/backups/users`).
+- [x] Gửi email cho admin khi có backup mới bằng queue job (`SendUserBackupReadyEmailJob` + `UserBackupReadyMail`).
+- [x] Cấu hình scheduler chạy `app:backup-users` hàng ngày lúc `01:00`.
+- [x] Bổ sung hướng dẫn crontab Linux chạy `php artisan schedule:run` mỗi phút trong `README.md` (thiết lập thực tế trên server cần thao tác thủ công).
+- [ ] Vận hành thủ công trên máy/server: cấu hình mail trong `.env`, chạy `php artisan queue:work` (hoặc supervisor) để job gửi mail được xử lý, thêm crontab gọi `schedule:run` mỗi phút.
 
 Output:
 - Hệ thống có log rõ ràng + backup tự động + thông báo email.

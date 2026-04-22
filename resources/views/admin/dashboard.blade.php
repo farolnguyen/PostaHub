@@ -58,6 +58,16 @@
                 </div>
             </div>
         </div>
+
+        <div class="col-md-6 col-lg-3 mb-3">
+            <div class="card h-100 shadow-sm border-0">
+                <div class="card-body d-flex flex-column">
+                    <h2 class="h5">Export / Import</h2>
+                    <p class="text-muted flex-grow-1 mb-3">Xuất user/post ra CSV hoặc Excel; import user từ CSV có validate theo dòng.</p>
+                    <a href="{{ route('admin.import.users.form') }}" class="btn btn-outline-success btn-sm">Mở import user</a>
+                </div>
+            </div>
+        </div>
     </div>
 </div>
 </body>
