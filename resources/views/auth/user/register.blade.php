@@ -7,15 +7,7 @@
         <div class="card-body">
             <h1 class="h4 mb-4 text-center">Đăng ký (User)</h1>
 
-            @if ($errors->any())
-                <div class="alert alert-danger">
-                    <ul class="mb-0 pl-3">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
+            <x-form.error-alert />
 
             <form method="post" action="{{ route('user.register.submit') }}">
                 @csrf

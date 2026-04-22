@@ -33,9 +33,7 @@
                     <summary class="small text-primary">Trả lời bình luận</summary>
                     <form action="{{ route('comment.store.reply', $comment) }}" method="post" class="mt-2" enctype="multipart/form-data">
                         @csrf
-                        <div class="form-group mb-2">
-                            <textarea name="content" rows="3" class="form-control js-comment-editor"></textarea>
-                        </div>
+                        <x-form.textarea name="content" rows="3" class="js-comment-editor mb-2" />
                         <div class="form-group mb-2">
                             <div class="js-media-inputs" data-max-files="5">
                                 <input type="file" name="media_images[]" class="form-control-file mb-2" accept="image/*,video/*,audio/*">

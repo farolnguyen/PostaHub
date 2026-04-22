@@ -43,16 +43,10 @@
                             <form action="{{ route('admin.rule.update', $user) }}" method="post" class="d-flex flex-wrap align-items-center">
                                 @csrf
                                 @method('PUT')
-                                <div class="form-check mr-4 mb-2 mb-md-0">
-                                    <input type="hidden" name="can_post" value="0">
-                                    <input class="form-check-input" type="checkbox" name="can_post" id="can_post_{{ $user->id }}" value="1" @checked($canPost)>
-                                    <label class="form-check-label" for="can_post_{{ $user->id }}">can_post</label>
-                                </div>
-                                <div class="form-check mr-4 mb-2 mb-md-0">
-                                    <input type="hidden" name="can_comment" value="0">
-                                    <input class="form-check-input" type="checkbox" name="can_comment" id="can_comment_{{ $user->id }}" value="1" @checked($canComment)>
-                                    <label class="form-check-label" for="can_comment_{{ $user->id }}">can_comment</label>
-                                </div>
+                                <input type="hidden" name="can_post" value="0">
+                                <x-form.checkbox name="can_post" label="can_post" :id="'can_post_'.$user->id" :checked="$canPost" class="mr-4 mb-2 mb-md-0" />
+                                <input type="hidden" name="can_comment" value="0">
+                                <x-form.checkbox name="can_comment" label="can_comment" :id="'can_comment_'.$user->id" :checked="$canComment" class="mr-4 mb-2 mb-md-0" />
                                 <button type="submit" class="btn btn-sm btn-primary ml-md-auto">Lưu</button>
                             </form>
                         </td>

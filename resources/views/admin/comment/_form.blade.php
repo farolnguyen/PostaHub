@@ -41,12 +41,4 @@
 <button type="submit" class="btn btn-primary">{{ $submitLabel }}</button>
 <a href="{{ route('admin.comment.index') }}" class="btn btn-outline-secondary ml-2">Quay lại</a>
 
-@if ($errors->any())
-    <div class="alert alert-danger mt-3">
-        <ul class="mb-0 pl-3">
-            @foreach ($errors->all() as $error)
-                <li>{{ $error }}</li>
-            @endforeach
-        </ul>
-    </div>
-@endif
+<x-form.error-alert class="mt-3" />

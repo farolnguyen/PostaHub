@@ -15,36 +15,30 @@
         <div class="card-body">
             <h1 class="h4 mb-3">Tải lên media</h1>
 
-            @if ($errors->any())
-                <div class="alert alert-danger">
-                    <ul class="mb-0 pl-3">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
+            <x-form.error-alert />
 
             <form action="{{ route('admin.media.store') }}" method="post" enctype="multipart/form-data">
                 @csrf
-                <div class="form-group">
-                    <label for="target_type">Gắn vào đối tượng</label>
-                    <select name="target_type" id="target_type" class="form-control" required>
-                        <option value="post" @selected(old('target_type')==='post')>Post</option>
-                        <option value="comment" @selected(old('target_type')==='comment')>Comment</option>
-                    </select>
-                </div>
+                <x-form.select name="target_type" label="Gắn vào đối tượng" required>
+                    <option value="post" @selected(old('target_type')==='post')>Post</option>
+                    <option value="comment" @selected(old('target_type')==='comment')>Comment</option>
+                </x-form.select>
 
-                <div class="form-group">
-                    <label for="target_id">Target ID</label>
-                    <input type="number" id="target_id" name="target_id" value="{{ old('target_id') }}" class="form-control" required>
-                    <small class="text-muted">Bạn có thể tham khảo danh sách Post/Comment bên dưới.</small>
-                </div>
+                <x-form.input
+                    name="target_id"
+                    label="Target ID"
+                    type="number"
+                    :value="old('target_id')"
+                    hint="Bạn có thể tham khảo danh sách Post/Comment bên dưới."
+                    required
+                />
 
-                <div class="form-group">
-                    <label for="file">File media (ảnh/video/âm thanh)</label>
-                    <input type="file" id="file" name="file" class="form-control-file" accept="image/*,video/*,audio/*" required>
-                </div>
+                <x-form.file
+                    name="file"
+                    label="File media (ảnh/video/âm thanh)"
+                    accept="image/*,video/*,audio/*"
+                    required
+                />
 
                 <button type="submit" class="btn btn-primary">Tải lên</button>
                 <a href="{{ route('admin.media.index') }}" class="btn btn-outline-secondary ml-2">Quay lại</a>

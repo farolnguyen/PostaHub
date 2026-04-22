@@ -202,6 +202,9 @@ Checklist thực hiện:
 - [x] FW1: Hoàn tất yêu cầu `Sử dụng Component để tạo form input` (chuẩn hóa các input chính thành Blade Component dùng lại được ở form user/admin).
   - [x] Đã tạo component dùng chung `resources/views/components/form/input.blade.php` và áp dụng cho các input text chính (`title`, `thumbnail`) ở form post user/admin.
   - [x] Mở rộng bộ component form gồm `input`, `select`, `textarea`, `checkbox`; áp dụng thêm cho nhóm form auth user/admin và `admin/comment/_form` để giảm lặp code.
+  - [x] Bổ sung component `file` và áp dụng thêm cho `admin/media/upload`, `admin/media/edit`, `admin/import/users` để chuẩn hóa field upload.
+  - [x] Hoàn tất đợt cuối: áp dụng thêm component cho `admin/rule/index` (checkbox quyền), `comment/edit`, `post/detail` và `post/partials/comment-item` (textarea comment/reply).
+  - [x] Bổ sung component `error-alert` để dùng chung hiển thị lỗi validate và thay thế các block lỗi lặp ở nhóm auth/admin/media/import/comment.
 - [ ] FW2: Rà soát và chốt phạm vi `Cache cho toàn site` theo hướng an toàn vận hành:
   - Nếu không cache một số trang (auth/admin động), ghi rõ lý do trong tài liệu.
   - Nếu cần bám sát literal "toàn site", bổ sung cache cho các trang list còn lại phù hợp.

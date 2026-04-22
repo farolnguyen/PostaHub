@@ -20,15 +20,7 @@
         <div class="alert alert-danger">{{ session('error') }}</div>
     @endif
 
-    @if ($errors->any())
-        <div class="alert alert-danger">
-            <ul class="mb-0 pl-3">
-                @foreach ($errors->all() as $message)
-                    <li>{{ $message }}</li>
-                @endforeach
-            </ul>
-        </div>
-    @endif
+    <x-form.error-alert />
 
     @php($result = session('import_result'))
     @if (is_array($result))
@@ -52,13 +44,12 @@
         <div class="card-body p-4">
             <form action="{{ route('admin.import.users.store') }}" method="post" enctype="multipart/form-data">
                 @csrf
-                <div class="form-group">
-                    <label for="csv_file">Chọn file CSV</label>
-                    <input type="file" name="csv_file" id="csv_file" class="form-control-file @error('csv_file') is-invalid @enderror" accept=".csv,.txt,text/csv" required>
-                    @error('csv_file')
-                        <div class="invalid-feedback d-block">{{ $message }}</div>
-                    @enderror
-                </div>
+                <x-form.file
+                    name="csv_file"
+                    label="Chọn file CSV"
+                    accept=".csv,.txt,text/csv"
+                    required
+                />
                 <button type="submit" class="btn btn-primary">Tải lên và import</button>
                 <a href="{{ route('admin.import.users.template') }}" class="btn btn-outline-secondary ml-2">Tải file mẫu CSV</a>
                 

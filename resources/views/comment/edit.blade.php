@@ -15,24 +15,13 @@
         <div class="card-body">
             <h1 class="h4 mb-3">Sửa bình luận</h1>
 
-            @if ($errors->any())
-                <div class="alert alert-danger">
-                    <ul class="mb-0 pl-3">
-                        @foreach ($errors->all() as $error)
-                            <li>{{ $error }}</li>
-                        @endforeach
-                    </ul>
-                </div>
-            @endif
+            <x-form.error-alert />
 
             <form action="{{ route('comment.update', $comment) }}" method="post" enctype="multipart/form-data">
                 @csrf
                 @method('PUT')
 
-                <div class="form-group">
-                    <label for="content">Nội dung</label>
-                    <textarea id="content" name="content" rows="6" class="form-control">{{ old('content', $comment->content) }}</textarea>
-                </div>
+                <x-form.textarea name="content" label="Nội dung" :value="$comment->content" rows="6" class="js-comment-editor" />
 
                 <div class="form-group">
                     <label>Tải media cho bình luận (tối đa 5 file ảnh/video/âm thanh)</label>

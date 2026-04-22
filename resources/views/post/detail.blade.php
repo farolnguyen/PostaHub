@@ -57,13 +57,13 @@
                 @if (auth('admin')->check() || auth('web')->user()?->can('create', \App\Models\Comment::class))
                     <form action="{{ route('comment.store.post', $post) }}" method="post" class="mb-4" enctype="multipart/form-data">
                         @csrf
-                        <div class="form-group">
-                            <label for="new-comment-content">Nội dung bình luận</label>
-                            <textarea id="new-comment-content" name="content" rows="4" class="form-control js-comment-editor @error('content') is-invalid @enderror">{{ old('content') }}</textarea>
-                            @error('content')
-                                <div class="invalid-feedback">{{ $message }}</div>
-                            @enderror
-                        </div>
+                        <x-form.textarea
+                            id="new-comment-content"
+                            name="content"
+                            label="Nội dung bình luận"
+                            rows="4"
+                            class="js-comment-editor"
+                        />
                         <div class="form-group">
                             <label>Tải media (ảnh/video/âm thanh) cho bình luận (tối đa 5 file)</label>
                             <div class="js-media-inputs" data-max-files="5">
