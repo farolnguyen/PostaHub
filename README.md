@@ -66,18 +66,25 @@ php artisan key:generate
 ```bash
 php artisan migrate:fresh --seed
 ```
+Lenh nay se seed:
+- 1 admin mac dinh (`admin@postahub.local` / `password`)
+- bo du lieu semantic search (user random + post da chu de, da do dai)
 
-### 5b) Seed dummy (1000 user x 100 post)
-Khong chay tu dong trong `DatabaseSeeder`. Lenh:
+### 5b) Seed lai bo du lieu semantic (tuy chinh so luong)
 ```bash
-php artisan db:seed --class=DummyBulkSeeder
+php artisan db:seed --class=SemanticSearchDatasetSeeder
 ```
-User: email `bulkdummy-seed-000000@seed.postahub.local` ... `bulkdummy-seed-000999@...`, mat khau `password`.
+Mac dinh:
+- `SEMANTIC_SEED_USERS=1000`
+- `SEMANTIC_SEED_POSTS_PER_USER=100` (tuong ung `100000` posts tong)
+- Co the override truc tiep tong posts bang `SEMANTIC_SEED_POSTS`.
+
+User semantic duoc tao random ten va email theo domain `@semantic.postahub.local`, mat khau `password`.
 
 
 Test nhanh (it user/post):
 ```bash
-DUMMY_SEED_USERS=5 DUMMY_SEED_POSTS_PER_USER=10 php artisan db:seed --class=DummyBulkSeeder
+SEMANTIC_SEED_USERS=20 SEMANTIC_SEED_POSTS_PER_USER=10 php artisan db:seed --class=SemanticSearchDatasetSeeder
 ```
 
 ### 6) Build frontend va chay app
@@ -94,9 +101,8 @@ Mo trinh duyet: `http://127.0.0.1:8000`
   - Email: `admin@postahub.local`
   - Password: `password`
 - Users:
-  - `derrick@example.com` / `password`
-  - `alice@example.com` / `password`
-  - `bob@example.com` / `password`
+  - Sinh random khi seed, domain email: `@semantic.postahub.local`
+  - Password: `password`
 
 ## Lenh hay dung
 - Clear cache config:
@@ -155,4 +161,53 @@ Mo trinh duyet: `http://127.0.0.1:8000`
 
 ## Ghi chu
 - Ke hoach implementation theo phase duoc cap nhat trong `progess.md`.
+
+## Setup semantic search (Task 2, Qdrant)
+### 1) Chay Qdrant bang Docker (lam tay)
+Trong thu muc project:
+```bash
+docker compose -f docker-compose.qdrant.yml up -d
+```
+
+Kiem tra service:
+```bash
+curl http://127.0.0.1:6333/collections
+```
+
+Neu can stop:
+```bash
+docker compose -f docker-compose.qdrant.yml down
+```
+
+### 2) Cau hinh env (lam tay)
+Them/doi cac bien trong `.env`:
+```env
+SEMANTIC_SEARCH_ENABLED=true
+QDRANT_URL=http://127.0.0.1:6333
+QDRANT_API_KEY=
+QDRANT_COLLECTION=post_chunks
+QDRANT_TIMEOUT_SECONDS=10
+
+EMBEDDING_PROVIDER=openai
+EMBEDDING_MODEL=text-embedding-3-small
+EMBEDDING_DIMENSIONS=1536
+EMBEDDING_API_KEY=your_key_here
+EMBEDDING_TIMEOUT_SECONDS=15
+
+SEMANTIC_CHUNK_SIZE_CHARS=1200
+SEMANTIC_CHUNK_OVERLAP_CHARS=200
+SEMANTIC_INDEX_BATCH_SIZE=100
+```
+
+Sau do clear config:
+```bash
+php artisan config:clear
+```
+
+### 3) Tao bang tracking chunk/index
+```bash
+php artisan migrate
+```
+
+Bang moi: `post_semantic_chunks` (luu chunk text, hash, trang thai indexed, loi gan nhat, vector point id).
 

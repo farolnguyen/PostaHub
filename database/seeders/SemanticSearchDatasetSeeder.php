@@ -8,24 +8,26 @@ use App\Models\User;
 use App\Models\UserRule;
 use Illuminate\Database\Seeder;
 use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class SemanticSearchDatasetSeeder extends Seeder
 {
-    private const USER_EMAIL_PREFIX = 'semantic-seed-';
+    private const USER_EMAIL_DOMAIN = 'semantic.postahub.local';
 
-    private const USER_EMAIL_DOMAIN = 'postahub.local';
+    private const POST_URL_PREFIX = 'semantic-seed-';
 
     public function run(): void
     {
-        $userCount = max(10, (int) env('SEMANTIC_SEED_USERS', 60));
-        $postCount = max(200, (int) env('SEMANTIC_SEED_POSTS', 2500));
+        $userCount = max(10, (int) env('SEMANTIC_SEED_USERS', 1000));
+        $postsPerUser = max(1, (int) env('SEMANTIC_SEED_POSTS_PER_USER', 100));
+        $postCount = max(200, (int) env('SEMANTIC_SEED_POSTS', $userCount * $postsPerUser));
 
-        $this->command?->info("Semantic dataset seeding: {$userCount} users, {$postCount} posts...");
+        $this->command?->info("Semantic dataset seeding: {$userCount} users, {$postsPerUser} posts/user ({$postCount} posts total)...");
 
         DB::disableQueryLog();
 
+        $this->cleanupPreviousSemanticUsersAndPosts();
         $users = $this->seedUsers($userCount);
-        $this->cleanupPreviousSemanticPosts();
         $this->seedPosts($users->pluck('id')->all(), $postCount);
 
         $this->command?->info("Done semantic dataset: {$userCount} users, {$postCount} posts.");
@@ -36,11 +38,17 @@ class SemanticSearchDatasetSeeder extends Seeder
         $users = collect();
 
         for ($i = 0; $i < $userCount; $i++) {
-            $email = self::USER_EMAIL_PREFIX.str_pad((string) $i, 4, '0', STR_PAD_LEFT).'@'.self::USER_EMAIL_DOMAIN;
+            $name = fake('vi_VN')->name();
+            $username = Str::slug($name, '.');
+            if ($username === '') {
+                $username = 'user';
+            }
+            $email = sprintf('%s.%d@%s', $username, $i, self::USER_EMAIL_DOMAIN);
+
             $user = User::query()->updateOrCreate(
                 ['email' => $email],
                 [
-                    'name' => 'Semantic User '.str_pad((string) $i, 4, '0', STR_PAD_LEFT),
+                    'name' => $name,
                     'password' => 'password',
                 ]
             );
@@ -56,39 +64,40 @@ class SemanticSearchDatasetSeeder extends Seeder
         return $users;
     }
 
-    private function cleanupPreviousSemanticPosts(): void
+    private function cleanupPreviousSemanticUsersAndPosts(): void
     {
         $postIds = DB::table('posts')
-            ->where('url', 'like', 'semantic-seed-%')
+            ->where('url', 'like', self::POST_URL_PREFIX.'%')
             ->pluck('id');
 
-        if ($postIds->isEmpty()) {
-            return;
+        if ($postIds->isNotEmpty()) {
+            $this->deleteByChunks('likes', 'post_id', $postIds->all());
+            $this->deleteByChunksWithType('media', 'mediable_type', Post::class, 'mediable_id', $postIds->all());
+
+            $commentIds = $this->collectCommentTreeIdsForPosts($postIds);
+            if ($commentIds !== []) {
+                $this->deleteByChunksWithType('media', 'mediable_type', Comment::class, 'mediable_id', $commentIds);
+                $this->deleteByChunks('comments', 'id', $commentIds);
+            }
+
+            $this->deleteByChunks('posts', 'id', $postIds->all());
         }
 
-        DB::table('likes')->whereIn('post_id', $postIds)->delete();
-        DB::table('media')
-            ->where('mediable_type', Post::class)
-            ->whereIn('mediable_id', $postIds)
-            ->delete();
+        $semanticUserIds = DB::table('users')
+            ->where('email', 'like', '%@'.self::USER_EMAIL_DOMAIN)
+            ->pluck('id');
 
-        $commentIds = $this->collectCommentTreeIdsForPosts($postIds);
-        if ($commentIds !== []) {
-            DB::table('media')
-                ->where('mediable_type', Comment::class)
-                ->whereIn('mediable_id', $commentIds)
-                ->delete();
-            DB::table('comments')->whereIn('id', $commentIds)->delete();
+        if ($semanticUserIds->isNotEmpty()) {
+            $this->deleteByChunks('user_rules', 'user_id', $semanticUserIds->all());
+            $this->deleteByChunks('users', 'id', $semanticUserIds->all());
         }
-
-        DB::table('posts')->whereIn('id', $postIds)->delete();
     }
 
     private function seedPosts(array $userIds, int $postCount): void
     {
         $topics = $this->topics();
-        $intents = ['huong_dan', 'chia_se_kinh_nghiem', 'so_sanh', 'tong_hop', 'hoi_dap'];
-        $tones = ['thuc_te', 'de_hieu', 'chi_tiet', 'ngan_gon', 'phan_tich'];
+        $intents = ['hướng_dẫn', 'chia_sẻ_kinh_nghiệm', 'so_sánh', 'tổng_hợp', 'hỏi_đáp'];
+        $tones = ['thực_tế', 'dễ_hiểu', 'chi_tiết', 'ngắn_gọn', 'phân_tích'];
 
         $rows = [];
         $now = now();
@@ -105,7 +114,7 @@ class SemanticSearchDatasetSeeder extends Seeder
             $rows[] = [
                 'user_id' => $userId,
                 'title' => $title,
-                'url' => 'semantic-seed-'.$i,
+                'url' => self::POST_URL_PREFIX.$i,
                 'content' => $content,
                 'thumbnail' => null,
                 'created_at' => $now,
@@ -128,18 +137,20 @@ class SemanticSearchDatasetSeeder extends Seeder
         $keyword = $topic['keywords'][array_rand($topic['keywords'])];
         $entity = $topic['entities'][array_rand($topic['entities'])];
         $angle = $topic['angles'][array_rand($topic['angles'])];
+        $adjectives = ['thực chiến', 'dễ áp dụng', 'cơ bản', 'nâng cao', 'thực tế'];
+        $adj = $adjectives[array_rand($adjectives)];
 
         $templates = [
-            'huong_dan' => 'Huong dan %s voi %s theo cach %s',
-            'chia_se_kinh_nghiem' => 'Kinh nghiem %s khi lam viec voi %s (%s)',
-            'so_sanh' => 'So sanh %s va %s: goc nhin %s',
-            'tong_hop' => 'Tong hop %s trong chu de %s (%s)',
-            'hoi_dap' => 'Giai dap: lam sao de %s khi gap %s (%s)',
+            'hướng_dẫn' => 'Hướng dẫn %s với %s theo cách %s (%s)',
+            'chia_sẻ_kinh_nghiệm' => 'Kinh nghiệm %s khi làm việc với %s (%s - %s)',
+            'so_sánh' => 'So sánh %s và %s: góc nhìn %s (%s)',
+            'tổng_hợp' => 'Tổng hợp %s trong chủ đề %s (%s - %s)',
+            'hỏi_đáp' => 'Giải đáp: làm sao để %s khi gặp %s (%s - %s)',
         ];
 
-        $template = $templates[$intent] ?? $templates['tong_hop'];
+        $template = $templates[$intent] ?? $templates['tổng_hợp'];
 
-        return sprintf($template, $keyword, $entity, $angle.' - '.$tone);
+        return sprintf($template, $keyword, $entity, $angle, $tone.' / '.$adj);
     }
 
     private function buildContent(array $topic, string $intent, string $tone, int $index): string
@@ -150,22 +161,35 @@ class SemanticSearchDatasetSeeder extends Seeder
         $entityB = $topic['entities'][array_rand($topic['entities'])];
         $angle = $topic['angles'][array_rand($topic['angles'])];
 
-        $intro = "Bai viet #{$index} tap trung vao {$keywordA} trong boi canh {$entityA}. Muc tieu la trinh bay theo phong cach {$tone}, giup nguoi doc tim duoc cach ap dung thuc te.";
-        $body1 = "O goc do {$angle}, nhieu nguoi thuong nham lan giua {$keywordA} va {$keywordB}. Khi dat vao tinh huong cu the lien quan den {$entityB}, cach tiep can theo tung buoc se hieu qua hon viec lam theo cam tinh.";
-        $body2 = "Neu xem day la bai toan hoi dap, cau hoi trung tam la: khi nao nen uu tien {$keywordA}, khi nao nen chuyen sang {$keywordB}. Cau tra loi phu thuoc vao muc tieu, rang buoc tai nguyen va muc do on dinh mong muon.";
-        $body3 = "Tu kinh nghiem thuc te, de toi uu ket qua can ket hop checklist ngan gon, do luong ket qua va lap vong cai tien. Day la ly do nhom noi dung nay phu hop de test semantic search voi cac query dien dat tu nhien.";
+        $intro = "Bài viết #{$index} tập trung vào {$keywordA} trong bối cảnh {$entityA}. Mục tiêu là trình bày theo phong cách {$tone}, giúp người đọc tìm được cách áp dụng thực tế.";
+        $body1 = "Ở góc độ {$angle}, nhiều người thường nhầm lẫn giữa {$keywordA} và {$keywordB}. Khi đặt vào tình huống cụ thể liên quan đến {$entityB}, cách tiếp cận theo từng bước sẽ hiệu quả hơn việc làm theo cảm tính.";
+        $body2 = "Nếu xem đây là bài toán hỏi đáp, câu hỏi trung tâm là: khi nào nên ưu tiên {$keywordA}, khi nào nên chuyển sang {$keywordB}. Câu trả lời phụ thuộc vào mục tiêu, ràng buộc tài nguyên và mức độ ổn định mong muốn.";
+        $body3 = "Từ kinh nghiệm thực tế, để tối ưu kết quả cần kết hợp checklist ngắn gọn, đo lường kết quả và lặp vòng cải tiến. Đây là lý do nhóm nội dung này phù hợp để test semantic search với các query diễn đạt tự nhiên.";
+        $body4 = "Một góc nhìn khác là sự đánh đổi giữa tốc độ và độ chính xác. Trong bối cảnh {$topic['name']}, nếu không xác định rõ ưu tiên, kết quả thường không ổn định theo thời gian.";
+        $body5 = "Trong nhóm người mới, cách học hiệu quả là bắt đầu từ case nhỏ, sau đó mở rộng. Với nhóm đã có kinh nghiệm, cách tiếp cận tốt hơn là benchmark và so sánh theo tiêu chí rõ ràng.";
 
         $tips = [
-            "Buoc 1: xac dinh bai toan trong chu de {$topic['name']}.",
-            "Buoc 2: doi chieu tu khoa lien quan ({$keywordA}, {$keywordB}, {$entityA}).",
-            "Buoc 3: chon huong xu ly phu hop voi boi canh va muc tieu.",
+            "Bước 1: xác định bài toán trong chủ đề {$topic['name']}.",
+            "Bước 2: đối chiếu từ khóa liên quan ({$keywordA}, {$keywordB}, {$entityA}).",
+            "Bước 3: chọn hướng xử lý phù hợp với bối cảnh và mục tiêu.",
         ];
 
-        return '<p>'.$intro.'</p>'
-            .'<p>'.$body1.'</p>'
-            .'<p>'.$body2.'</p>'
-            .'<p>'.$body3.'</p>'
-            .'<ul><li>'.$tips[0].'</li><li>'.$tips[1].'</li><li>'.$tips[2].'</li></ul>';
+        $profile = fake()->randomElement(['short', 'medium', 'long']);
+
+        $parts = ['<p>'.$intro.'</p>', '<p>'.$body1.'</p>'];
+        if ($profile !== 'short') {
+            $parts[] = '<p>'.$body2.'</p>';
+            $parts[] = '<p>'.$body3.'</p>';
+        }
+        if ($profile === 'long') {
+            $parts[] = '<p>'.$body4.'</p>';
+            $parts[] = '<p>'.$body5.'</p>';
+            $parts[] = '<p>'.$body2.' '.$body4.'</p>';
+        }
+
+        $parts[] = '<ul><li>'.$tips[0].'</li><li>'.$tips[1].'</li><li>'.$tips[2].'</li></ul>';
+
+        return implode('', $parts);
     }
 
     private function topics(): array
@@ -173,33 +197,33 @@ class SemanticSearchDatasetSeeder extends Seeder
         return [
             [
                 'name' => 'cong-nghe-lap-trinh',
-                'keywords' => ['laravel', 'api', 'queue', 'cache', 'docker', 'postgresql', 'mysql', 'semantic search'],
-                'entities' => ['microservice', 'monolith', 'ci/cd', 'cloud', 'devops'],
-                'angles' => ['hieu nang', 'bao tri', 'kha nang mo rong', 'chi phi van hanh'],
+                'keywords' => ['laravel', 'api', 'hàng đợi', 'bộ nhớ đệm', 'docker', 'postgresql', 'mysql', 'tìm kiếm ngữ nghĩa'],
+                'entities' => ['microservice', 'monolith', 'ci/cd', 'đám mây', 'devops'],
+                'angles' => ['hiệu năng', 'bảo trì', 'khả năng mở rộng', 'chi phí vận hành'],
             ],
             [
                 'name' => 'doi-song-xa-hoi',
-                'keywords' => ['thoi quen', 'quan ly thoi gian', 'suc khoe tinh than', 'giao tiep', 'can bang cong viec'],
-                'entities' => ['gia dinh', 'dong nghiep', 'cong dong', 'moi truong hoc tap'],
-                'angles' => ['thuc hanh hang ngay', 'tam ly hanh vi', 'tu danh gia', 'duy tri dong luc'],
+                'keywords' => ['thói quen', 'quản lý thời gian', 'sức khỏe tinh thần', 'giao tiếp', 'cân bằng công việc'],
+                'entities' => ['gia đình', 'đồng nghiệp', 'cộng đồng', 'môi trường học tập'],
+                'angles' => ['thực hành hằng ngày', 'tâm lý hành vi', 'tự đánh giá', 'duy trì động lực'],
             ],
             [
                 'name' => 'du-lich-am-thuc',
-                'keywords' => ['lich trinh', 'am thuc dia phuong', 'chi phi', 'trai nghiem', 'di chuyen'],
-                'entities' => ['Da Nang', 'Hoi An', 'Ha Noi', 'TP.HCM', 'Da Lat'],
-                'angles' => ['tiet kiem ngan sach', 'uu tien trai nghiem', 'di cung gia dinh', 'di mot minh'],
+                'keywords' => ['lịch trình', 'ẩm thực địa phương', 'chi phí', 'trải nghiệm', 'di chuyển'],
+                'entities' => ['Đà Nẵng', 'Hội An', 'Hà Nội', 'TP.HCM', 'Đà Lạt'],
+                'angles' => ['tiết kiệm ngân sách', 'ưu tiên trải nghiệm', 'đi cùng gia đình', 'đi một mình'],
             ],
             [
                 'name' => 'the-thao-suc-khoe',
-                'keywords' => ['chay bo', 'gym', 'dinh duong', 'hoi phuc', 'ngu'],
-                'entities' => ['lich tap', 'muc tieu giam can', 'muc tieu tang co', 'nhom nguoi moi bat dau'],
-                'angles' => ['an toan', 'hieu qua', 'duy tri lau dai', 'tranh chan thuong'],
+                'keywords' => ['chạy bộ', 'gym', 'dinh dưỡng', 'hồi phục', 'giấc ngủ'],
+                'entities' => ['lịch tập', 'mục tiêu giảm cân', 'mục tiêu tăng cơ', 'nhóm người mới bắt đầu'],
+                'angles' => ['an toàn', 'hiệu quả', 'duy trì lâu dài', 'tránh chấn thương'],
             ],
             [
                 'name' => 'hoc-tap-nghe-nghiep',
-                'keywords' => ['cv', 'phong van', 'portfolio', 'ky nang mem', 'tu hoc'],
-                'entities' => ['sinh vien', 'nguoi chuyen nganh', 'junior dev', 'team lead'],
-                'angles' => ['lap ke hoach', 'thuc chien', 'phan hoi', 'danh gia nang luc'],
+                'keywords' => ['cv', 'phỏng vấn', 'portfolio', 'kỹ năng mềm', 'tự học'],
+                'entities' => ['sinh viên', 'người chuyển ngành', 'junior dev', 'team lead'],
+                'angles' => ['lập kế hoạch', 'thực chiến', 'phản hồi', 'đánh giá năng lực'],
             ],
         ];
     }
@@ -213,12 +237,19 @@ class SemanticSearchDatasetSeeder extends Seeder
         $postType = Post::class;
         $commentType = Comment::class;
 
-        $roots = DB::table('comments')
-            ->where('commentable_type', $postType)
-            ->whereIn('commentable_id', $postIds)
-            ->pluck('id')
-            ->map(fn ($id) => (int) $id)
-            ->all();
+        $postIdArray = collect($postIds)->map(fn ($id) => (int) $id)->all();
+        $roots = [];
+        foreach (array_chunk($postIdArray, 1000) as $chunk) {
+            $chunkRoots = DB::table('comments')
+                ->where('commentable_type', $postType)
+                ->whereIn('commentable_id', $chunk)
+                ->pluck('id')
+                ->map(fn ($id) => (int) $id)
+                ->all();
+            foreach ($chunkRoots as $rid) {
+                $roots[] = $rid;
+            }
+        }
 
         $seen = [];
         $queue = $roots;
@@ -244,6 +275,35 @@ class SemanticSearchDatasetSeeder extends Seeder
         }
 
         return array_map('intval', array_keys($seen));
+    }
+
+    /**
+     * @param  list<int|string>  $ids
+     */
+    private function deleteByChunks(string $table, string $column, array $ids, int $chunkSize = 1000): void
+    {
+        foreach (array_chunk($ids, $chunkSize) as $chunk) {
+            DB::table($table)->whereIn($column, $chunk)->delete();
+        }
+    }
+
+    /**
+     * @param  list<int|string>  $ids
+     */
+    private function deleteByChunksWithType(
+        string $table,
+        string $typeColumn,
+        string $typeValue,
+        string $idColumn,
+        array $ids,
+        int $chunkSize = 1000
+    ): void {
+        foreach (array_chunk($ids, $chunkSize) as $chunk) {
+            DB::table($table)
+                ->where($typeColumn, $typeValue)
+                ->whereIn($idColumn, $chunk)
+                ->delete();
+        }
     }
 }
 

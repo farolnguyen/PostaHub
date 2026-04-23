@@ -38,6 +38,11 @@ class Post extends Model
         return $this->hasMany(Like::class);
     }
 
+    public function semanticChunks(): HasMany
+    {
+        return $this->hasMany(PostSemanticChunk::class);
+    }
+
     /**
      * Sinh slug URL duy nhất từ tiêu đề (hỗ trợ tiếng Việt qua Str::slug locale vi).
      */
