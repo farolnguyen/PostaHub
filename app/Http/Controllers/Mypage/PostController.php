@@ -7,6 +7,7 @@ use App\Http\Requests\Post\StorePostRequest;
 use App\Http\Requests\Post\UpdatePostRequest;
 use App\Models\Post;
 use App\Support\ActorUserResolver;
+use App\Support\HtmlSanitizer;
 use App\Support\SiteCache;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
@@ -67,6 +68,7 @@ class PostController extends Controller
         $data = $request->validated();
         $data['user_id'] = $actor->id;
         $data['url'] = Post::makeUniqueUrl($data['title']);
+        $data['content'] = HtmlSanitizer::clean($data['content']);
         unset($data['media_images'], $data['thumbnail_file']);
 
         if ($request->hasFile('thumbnail_file')) {
@@ -95,6 +97,7 @@ class PostController extends Controller
         $this->authorize('update', $post);
 
         $data = $request->validated();
+        $data['content'] = HtmlSanitizer::clean($data['content']);
         unset($data['media_images'], $data['thumbnail_file']);
 
         if ($post->title !== $data['title']) {

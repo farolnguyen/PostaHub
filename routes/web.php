@@ -72,7 +72,7 @@ Route::get('/post/slug-preview', PostSlugPreviewController::class)->name('post.s
 
 Route::middleware('guest:web')->group(function () {
     Route::get('/login', [UserAuthController::class, 'showLoginForm'])->name('user.login.form');
-    Route::post('/login', [UserAuthController::class, 'login'])->name('user.login.submit');
+    Route::post('/login', [UserAuthController::class, 'login'])->middleware('throttle:5,1')->name('user.login.submit');
     Route::get('/register', [UserRegisterController::class, 'showRegistrationForm'])->name('user.register.form');
     Route::post('/register', [UserRegisterController::class, 'register'])->name('user.register.submit');
     Route::get('/forget_password', [UserForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
@@ -118,7 +118,7 @@ Route::get('/post/detail/{url}', [PostDetailController::class, 'show'])->name('p
 Route::prefix('admin')->name('admin.')->group(function () {
     Route::middleware('guest:admin')->group(function () {
         Route::get('/login', [AdminAuthController::class, 'showLoginForm'])->name('login.form');
-        Route::post('/login', [AdminAuthController::class, 'login'])->name('login.submit');
+        Route::post('/login', [AdminAuthController::class, 'login'])->middleware('throttle:5,1')->name('login.submit');
         Route::get('/register', [AdminRegisterController::class, 'showRegisterForm'])->name('register.form');
         Route::post('/register', [AdminRegisterController::class, 'register'])->name('register.submit');
         Route::get('/forget_password', [AdminForgotPasswordController::class, 'showLinkRequestForm'])->name('password.request');
@@ -154,19 +154,19 @@ Route::middleware(['auth:web,admin'])->group(function () {
     Route::prefix('mypage')->name('mypage.')->group(function () {
         Route::get('/post', [MypagePostController::class, 'index'])->name('post.index');
         Route::get('/post/create', [MypagePostController::class, 'create'])->name('post.create');
-        Route::post('/post', [MypagePostController::class, 'store'])->name('post.store');
+        Route::post('/post', [MypagePostController::class, 'store'])->middleware('throttle:20,1')->name('post.store');
         Route::get('/post/{post}/edit', [MypagePostController::class, 'edit'])->name('post.edit');
-        Route::put('/post/{post}', [MypagePostController::class, 'update'])->name('post.update');
+        Route::put('/post/{post}', [MypagePostController::class, 'update'])->middleware('throttle:20,1')->name('post.update');
         Route::delete('/post/{post}', [MypagePostController::class, 'destroy'])->name('post.destroy');
         Route::get('/like', [MypageLikeController::class, 'index'])->name('like.index');
         Route::get('/profile', [MypageProfileController::class, 'index'])->name('profile.index');
     });
 
     Route::prefix('comment')->name('comment.')->group(function () {
-        Route::post('/post/{post}', [CommentController::class, 'storeForPost'])->name('store.post');
-        Route::post('/reply/{comment}', [CommentController::class, 'storeReply'])->name('store.reply');
+        Route::post('/post/{post}', [CommentController::class, 'storeForPost'])->middleware('throttle:30,1')->name('store.post');
+        Route::post('/reply/{comment}', [CommentController::class, 'storeReply'])->middleware('throttle:30,1')->name('store.reply');
         Route::get('/{comment}/edit', [CommentController::class, 'edit'])->name('edit');
-        Route::put('/{comment}', [CommentController::class, 'update'])->name('update');
+        Route::put('/{comment}', [CommentController::class, 'update'])->middleware('throttle:30,1')->name('update');
         Route::delete('/{comment}', [CommentController::class, 'destroy'])->name('destroy');
     });
 
@@ -181,9 +181,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:admin', 'verified'])->
     Route::prefix('post')->name('post.')->group(function () {
         Route::get('/', [AdminPostController::class, 'index'])->name('index');
         Route::get('/create', [AdminPostController::class, 'create'])->name('create');
-        Route::post('/', [AdminPostController::class, 'store'])->name('store');
+        Route::post('/', [AdminPostController::class, 'store'])->middleware('throttle:20,1')->name('store');
         Route::get('/{post}/edit', [AdminPostController::class, 'edit'])->name('edit');
-        Route::put('/{post}', [AdminPostController::class, 'update'])->name('update');
+        Route::put('/{post}', [AdminPostController::class, 'update'])->middleware('throttle:20,1')->name('update');
         Route::delete('/{post}', [AdminPostController::class, 'destroy'])->name('destroy');
         Route::get('/detail/{post}', [AdminPostController::class, 'show'])->name('detail');
     });
@@ -191,19 +191,19 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:admin', 'verified'])->
     Route::prefix('media')->name('media.')->group(function () {
         Route::get('/', [AdminMediaController::class, 'index'])->name('index');
         Route::get('/upload', [AdminMediaController::class, 'create'])->name('upload');
-        Route::post('/upload', [AdminMediaController::class, 'store'])->name('store');
+        Route::post('/upload', [AdminMediaController::class, 'store'])->middleware('throttle:20,1')->name('store');
         Route::get('/detail/{media}', [AdminMediaController::class, 'show'])->name('detail');
         Route::get('/edit/{media}', [AdminMediaController::class, 'edit'])->name('edit');
-        Route::put('/edit/{media}', [AdminMediaController::class, 'update'])->name('update');
+        Route::put('/edit/{media}', [AdminMediaController::class, 'update'])->middleware('throttle:20,1')->name('update');
         Route::delete('/delete/{media}', [AdminMediaController::class, 'destroy'])->name('delete');
     });
 
     Route::prefix('comment')->name('comment.')->group(function () {
         Route::get('/', [AdminCommentController::class, 'index'])->name('index');
         Route::get('/create', [AdminCommentController::class, 'create'])->name('create');
-        Route::post('/create', [AdminCommentController::class, 'store'])->name('store');
+        Route::post('/create', [AdminCommentController::class, 'store'])->middleware('throttle:30,1')->name('store');
         Route::get('/edit/{comment}', [AdminCommentController::class, 'edit'])->name('edit');
-        Route::put('/edit/{comment}', [AdminCommentController::class, 'update'])->name('update');
+        Route::put('/edit/{comment}', [AdminCommentController::class, 'update'])->middleware('throttle:30,1')->name('update');
         Route::delete('/delete/{comment}', [AdminCommentController::class, 'destroy'])->name('delete');
     });
 
@@ -221,7 +221,7 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:admin', 'verified'])->
 
     Route::prefix('import')->name('import.')->group(function () {
         Route::get('/users', [AdminImportController::class, 'usersForm'])->name('users.form');
-        Route::post('/users', [AdminImportController::class, 'usersStore'])->name('users.store');
+        Route::post('/users', [AdminImportController::class, 'usersStore'])->middleware('throttle:10,1')->name('users.store');
         Route::get('/users/template.csv', [AdminImportController::class, 'usersTemplateCsv'])->name('users.template');
     });
 });

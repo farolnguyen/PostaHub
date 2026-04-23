@@ -7,6 +7,7 @@ use App\Http\Requests\Post\StorePostRequest;
 use App\Http\Requests\Post\UpdatePostRequest;
 use App\Models\Post;
 use App\Models\User;
+use App\Support\HtmlSanitizer;
 use App\Support\SiteCache;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
@@ -39,6 +40,7 @@ class PostController extends Controller
     public function store(StorePostRequest $request): RedirectResponse
     {
         $data = $request->validated();
+        $data['content'] = HtmlSanitizer::clean($data['content']);
         unset($data['media_images'], $data['thumbnail_file']);
         $data['user_id'] = (int) $request->integer('user_id');
         $data['url'] = Post::makeUniqueUrl($data['title']);
@@ -71,6 +73,7 @@ class PostController extends Controller
     public function update(UpdatePostRequest $request, Post $post): RedirectResponse
     {
         $data = $request->validated();
+        $data['content'] = HtmlSanitizer::clean($data['content']);
         unset($data['media_images'], $data['thumbnail_file']);
         $data['user_id'] = (int) $request->integer('user_id');
 

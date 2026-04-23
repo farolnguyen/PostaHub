@@ -67,6 +67,19 @@ php artisan key:generate
 php artisan migrate:fresh --seed
 ```
 
+### 5b) Seed dummy (1000 user x 100 post)
+Khong chay tu dong trong `DatabaseSeeder`. Lenh:
+```bash
+php artisan db:seed --class=DummyBulkSeeder
+```
+User: email `bulkdummy-seed-000000@seed.postahub.local` ... `bulkdummy-seed-000999@...`, mat khau `password`.
+
+
+Test nhanh (it user/post):
+```bash
+DUMMY_SEED_USERS=5 DUMMY_SEED_POSTS_PER_USER=10 php artisan db:seed --class=DummyBulkSeeder
+```
+
 ### 6) Build frontend va chay app
 ```bash
 npm run build
@@ -103,6 +116,17 @@ Mo trinh duyet: `http://127.0.0.1:8000`
 - Da cau hinh scheduler: command `app:backup-users` chay hang ngay luc `01:00`.
 - Tren Linux server, them crontab de Laravel scheduler duoc kich hoat moi phut:
   - `* * * * * cd /duong-dan/PostaHub && php artisan schedule:run >> /dev/null 2>&1`
+
+## Chien luoc cache (FW2)
+- Da ap dung cache cho cac luong doc nhieu:
+  - Trang chu feed (`/`)
+  - Chi tiet bai viet (`/post/{url}`)
+  - Mypage: danh sach post/like va thong ke profile
+- Cac thao tac CRUD/like lien quan se goi version bump (`App\\Support\\SiteCache::bumpAll()`) de key cache moi duoc sinh ngay.
+- Chu dong **khong cache truc tiep HTML** voi:
+  - Trang auth (login/register/forgot/reset) do co token/session/validation theo request.
+  - Trang admin CRUD/list de uu tien du lieu realtime va tranh stale data khi quan tri.
+- Cach tiep can nay dap ung yeu cau cache theo huong an toan van hanh: toi uu phan doc lon, giu tinh nhat quan du lieu dong.
 
 ## Ghi chu upload media lon (video/audio)
 - He thong da ho tro upload media `image/*`, `video/*`, `audio/*` cho post/comment (user + admin).

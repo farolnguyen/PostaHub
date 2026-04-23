@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\Comment;
 use App\Models\Post;
 use App\Models\User;
+use App\Support\HtmlSanitizer;
 use App\Support\SiteCache;
 use App\Support\UploadErrorLogger;
 use Illuminate\Http\RedirectResponse;
@@ -47,7 +48,7 @@ class CommentController extends Controller
 
         $comment = $target->comments()->create([
             'user_id' => (int) $validated['user_id'],
-            'content' => $this->embedImageUrls($validated['content']),
+            'content' => HtmlSanitizer::clean($this->embedImageUrls($validated['content'])),
             'image' => null,
         ]);
 
@@ -79,7 +80,7 @@ class CommentController extends Controller
 
         $comment->update([
             'user_id' => (int) $validated['user_id'],
-            'content' => $this->embedImageUrls($validated['content']),
+            'content' => HtmlSanitizer::clean($this->embedImageUrls($validated['content'])),
             'image' => $comment->image,
             'commentable_type' => $target::class,
             'commentable_id' => $target->id,

@@ -205,11 +205,24 @@ Checklist thực hiện:
   - [x] Bổ sung component `file` và áp dụng thêm cho `admin/media/upload`, `admin/media/edit`, `admin/import/users` để chuẩn hóa field upload.
   - [x] Hoàn tất đợt cuối: áp dụng thêm component cho `admin/rule/index` (checkbox quyền), `comment/edit`, `post/detail` và `post/partials/comment-item` (textarea comment/reply).
   - [x] Bổ sung component `error-alert` để dùng chung hiển thị lỗi validate và thay thế các block lỗi lặp ở nhóm auth/admin/media/import/comment.
-- [ ] FW2: Rà soát và chốt phạm vi `Cache cho toàn site` theo hướng an toàn vận hành:
-  - Nếu không cache một số trang (auth/admin động), ghi rõ lý do trong tài liệu.
-  - Nếu cần bám sát literal "toàn site", bổ sung cache cho các trang list còn lại phù hợp.
+- [x] FW2: Rà soát và chốt phạm vi `Cache cho toàn site` theo hướng an toàn vận hành:
+  - [x] Đã chốt phạm vi cache theo nhóm trang chính có tải đọc cao:
+    - Public: homepage feed (`/`), post detail (`/post/{url}`).
+    - Mypage: danh sách post, danh sách like, profile stats (comments/likes).
+  - [x] Đã áp dụng invalidation tập trung bằng version key (`SiteCache::bumpAll()`) sau các thao tác CRUD/like liên quan để đảm bảo dữ liệu mới được phản ánh.
+  - [x] Đã chốt rõ các khu vực **không cache trực tiếp HTML** theo chủ đích:
+    - Toàn bộ form auth (login/register/forgot/reset): dữ liệu phiên + token + trạng thái lỗi theo request.
+    - Khu vực admin CRUD/list: ưu tiên dữ liệu realtime và giảm rủi ro stale khi thao tác quản trị liên tục.
+  - [x] Kết luận bám sát yêu cầu "cache toàn site" theo nghĩa kỹ thuật an toàn: cache lớp đọc nhiều của luồng public/mypage + vẫn giữ tính nhất quán, không đánh đổi tính đúng của luồng auth/admin động.
 - [ ] FW3: Chạy smoke test toàn sitemap theo đề (public, mypage, admin, export/import, rule, backup/schedule, queue mail) và lưu checklist test pass.
+  - [x] Đã chạy smoke test tự động mức route/status code cho nhóm route chính (`/`, auth user/admin, redirect bảo vệ `/mypage` và `/admin`) + kiểm tra `route:list`.
+  - [x] Đã tạo checklist test tay đầy đủ theo sitemap tại `SmokeTestChecklist.md` để lưu bằng chứng PASS/FAIL khi chạy thực tế.
+  - [ ] Chờ tick PASS toàn bộ mục test tay trong `SmokeTestChecklist.md` để đóng FW3.
 - [ ] FW4: Rà soát bảo mật đầu ra HTML CKEditor (XSS): tối thiểu ghi chú trạng thái + hướng xử lý sanitize (whitelist tag) trong tài liệu.
+  - [x] Đã triển khai sanitize HTML khi lưu post/comment (user + admin) bằng `mews/purifier` qua helper `App\Support\HtmlSanitizer`.
+  - [x] Đã áp whitelist tag/attribute phục vụ CKEditor (đoạn văn, danh sách, link, ảnh, code...) để giảm rủi ro XSS khi render `{!! !!}`.
+  - [x] Đã bổ sung hardening mức đơn giản (không phức tạp): throttle cho login và các endpoint upload-heavy/comment-heavy; thêm middleware security headers cơ bản (`nosniff`, `SAMEORIGIN`, `Referrer-Policy`, `Permissions-Policy`).
+  - [ ] Chờ test tay payload XSS và xác nhận UX throttle phù hợp để đóng hoàn toàn FW4.
 - [ ] FW5: Chốt tài liệu bàn giao:
   - Cập nhật `README.md` phần setup chạy thực tế (queue worker, cron, storage link, php.ini upload lớn).
   - Cập nhật `progess.md` từ `[ ]` sang `[x]` cho các mục FW sau khi hoàn tất.

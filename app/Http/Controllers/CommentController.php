@@ -7,6 +7,7 @@ use App\Http\Requests\Comment\UpdateCommentRequest;
 use App\Models\Comment;
 use App\Models\Post;
 use App\Support\ActorUserResolver;
+use App\Support\HtmlSanitizer;
 use App\Support\SiteCache;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
@@ -22,7 +23,7 @@ class CommentController extends Controller
 
         $comment = $post->comments()->create([
             'user_id' => $actor->id,
-            'content' => $this->embedImageUrls($request->validated('content')),
+            'content' => HtmlSanitizer::clean($this->embedImageUrls($request->validated('content'))),
             'image' => null,
         ]);
         $this->storeCommentMedia($comment, $request->file('media_images', []));
@@ -39,7 +40,7 @@ class CommentController extends Controller
 
         $reply = $comment->comments()->create([
             'user_id' => $actor->id,
-            'content' => $this->embedImageUrls($request->validated('content')),
+            'content' => HtmlSanitizer::clean($this->embedImageUrls($request->validated('content'))),
             'image' => null,
         ]);
         $this->storeCommentMedia($reply, $request->file('media_images', []));
@@ -60,7 +61,7 @@ class CommentController extends Controller
         $this->authorize('update', $comment);
 
         $data = $request->validated();
-        $data['content'] = $this->embedImageUrls($data['content']);
+        $data['content'] = HtmlSanitizer::clean($this->embedImageUrls($data['content']));
         unset($data['media_images']);
 
         $comment->update($data);
