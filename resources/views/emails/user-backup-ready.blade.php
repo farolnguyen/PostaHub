@@ -2,16 +2,16 @@
 <html lang="vi">
 <head>
     <meta charset="UTF-8">
-    <title>Thong bao backup users</title>
+    <title>THÔNG BÁO BACKUP USER</title>
 </head>
 <body>
-<p>Backup bang <strong>users</strong> vua duoc tao.</p>
+<p>Backup bảng <strong>users</strong> vừa được tạo.</p>
 <ul>
-    <li>Thoi gian tao: {{ $generatedAt }}</li>
-    <li>So dong du lieu: {{ $rowCount }}</li>
-    <li>Duong dan (storage/app): {{ $relativePath }}</li>
+    <li>Thời gian tạo: {{ $generatedAt }}</li>
+    <li>Số dòng dữ liệu: {{ $rowCount }}</li>
+    <li>Đường dẫn (storage/app): {{ $relativePath }}</li>
 </ul>
-<p>Mail duoc gui tu he thong PostaHub.</p>
+<p>Mail được gửi từ hệ thống PostaHub.</p>
 </body>
 </html>
 

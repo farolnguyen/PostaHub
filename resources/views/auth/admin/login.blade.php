@@ -23,6 +23,9 @@
             <p class="mt-3 mb-0 text-center">
                 <a href="{{ route('admin.password.request') }}">Quên mật khẩu?</a>
             </p>
+            <p class="mt-3 mb-0 text-center">
+                <a href="{{ route('user.login.form') }}">Đăng nhập với tài khoản User</a>
+            </p>
         </div>
     </div>
 @endsection

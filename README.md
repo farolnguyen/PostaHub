@@ -83,6 +83,7 @@ DUMMY_SEED_USERS=5 DUMMY_SEED_POSTS_PER_USER=10 php artisan db:seed --class=Dumm
 ### 6) Build frontend va chay app
 ```bash
 npm run build
+php artisan storage:link
 php artisan serve
 ```
 
@@ -132,6 +133,11 @@ Mo trinh duyet: `http://127.0.0.1:8000`
 - He thong da ho tro upload media `image/*`, `video/*`, `audio/*` cho post/comment (user + admin).
 - Neu gap loi `The POST data is too large`, can tang gioi han PHP (`upload_max_filesize`, `post_max_size`) trong file `php.ini` cua moi truong dang chay (CLI/FPM), sau do restart service tuong ung.
 - Goi y local khi chay `php artisan serve`: `upload_max_filesize=64M`, `post_max_size=80M`.
+
+## Ghi chu bao mat co ban (FW4)
+- Da bo sung sanitize HTML cho noi dung CKEditor (post/comment) bang `mews/purifier` theo whitelist tag/attribute.
+- Da bo sung throttle cho login va cac endpoint upload/comment de giam spam/bruteforce.
+- Da bo sung security headers co ban qua middleware global (`nosniff`, `SAMEORIGIN`, `Referrer-Policy`, `Permissions-Policy`).
 
 ## Cau truc du lieu hien tai
 - `users`, `admins`
