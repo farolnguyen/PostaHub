@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Events\CommentChanged;
 use App\Http\Requests\Comment\StoreCommentRequest;
 use App\Http\Requests\Comment\UpdateCommentRequest;
 use App\Models\Comment;
@@ -28,6 +29,9 @@ class CommentController extends Controller
         ]);
         $this->storeCommentMedia($comment, $request->file('media_images', []));
         SiteCache::bumpAll();
+        broadcast(new CommentChanged(
+            CommentChanged::payloadFromComment($comment, 'created', (int) $post->id, null)
+        ));
 
         return back()->with('status', 'Đã thêm bình luận cho bài viết.');
     }
@@ -45,6 +49,12 @@ class CommentController extends Controller
         ]);
         $this->storeCommentMedia($reply, $request->file('media_images', []));
         SiteCache::bumpAll();
+        $post = $this->resolveOwningPost($reply);
+        if ($post instanceof Post) {
+            broadcast(new CommentChanged(
+                CommentChanged::payloadFromComment($reply, 'created', (int) $post->id, (int) $comment->id)
+            ));
+        }
 
         return back()->with('status', 'Đã trả lời bình luận.');
     }
@@ -67,6 +77,13 @@ class CommentController extends Controller
         $comment->update($data);
         $this->storeCommentMedia($comment, $request->file('media_images', []));
         SiteCache::bumpAll();
+        $post = $this->resolveOwningPost($comment);
+        if ($post instanceof Post) {
+            $parentCommentId = $comment->commentable_type === Comment::class ? (int) $comment->commentable_id : null;
+            broadcast(new CommentChanged(
+                CommentChanged::payloadFromComment($comment, 'updated', (int) $post->id, $parentCommentId)
+            ));
+        }
 
         return $this->redirectToCommentSource($comment)
             ->with('status', 'Đã cập nhật bình luận.');
@@ -77,25 +94,38 @@ class CommentController extends Controller
         $this->authorize('delete', $comment);
 
         $redirect = $this->redirectToCommentSource($comment);
+        $post = $this->resolveOwningPost($comment);
+        $commentId = (int) $comment->id;
+        $parentCommentId = $comment->commentable_type === Comment::class ? (int) $comment->commentable_id : null;
         $comment->delete();
         SiteCache::bumpAll();
+        if ($post instanceof Post) {
+            broadcast(new CommentChanged(
+                CommentChanged::payloadForDelete((int) $post->id, $commentId, $parentCommentId)
+            ));
+        }
 
         return $redirect->with('status', 'Đã xóa bình luận.');
     }
 
     private function redirectToCommentSource(Comment $comment): RedirectResponse
     {
-        $owner = $comment->commentable;
-
-        while ($owner instanceof Comment) {
-            $owner = $owner->commentable;
-        }
-
+        $owner = $this->resolveOwningPost($comment);
         if ($owner instanceof Post) {
             return redirect()->route('post.detail', $owner->url);
         }
 
         return redirect()->route('home');
+    }
+
+    private function resolveOwningPost(Comment $comment): ?Post
+    {
+        $owner = $comment->commentable;
+        while ($owner instanceof Comment) {
+            $owner = $owner->commentable;
+        }
+
+        return $owner instanceof Post ? $owner : null;
     }
 
     private function embedImageUrls(string $content): string

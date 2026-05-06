@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers\Admin;
 
+use App\Events\CommentChanged;
 use App\Http\Controllers\Controller;
 use App\Models\Comment;
 use App\Models\Post;
@@ -54,6 +55,13 @@ class CommentController extends Controller
 
         $this->storeCommentMedia($comment, $request->file('media_images', []));
         SiteCache::bumpAll();
+        $post = $this->resolveOwningPost($comment);
+        if ($post instanceof Post) {
+            $parentCommentId = $comment->commentable_type === Comment::class ? (int) $comment->commentable_id : null;
+            broadcast(new CommentChanged(
+                CommentChanged::payloadFromComment($comment, 'created', (int) $post->id, $parentCommentId)
+            ));
+        }
 
         return redirect()->route('admin.comment.index')->with('status', 'Admin đã tạo bình luận thành công.');
     }
@@ -88,12 +96,22 @@ class CommentController extends Controller
 
         $this->storeCommentMedia($comment, $request->file('media_images', []));
         SiteCache::bumpAll();
+        $post = $this->resolveOwningPost($comment);
+        if ($post instanceof Post) {
+            $parentCommentId = $comment->commentable_type === Comment::class ? (int) $comment->commentable_id : null;
+            broadcast(new CommentChanged(
+                CommentChanged::payloadFromComment($comment, 'updated', (int) $post->id, $parentCommentId)
+            ));
+        }
 
         return redirect()->route('admin.comment.index')->with('status', 'Admin đã cập nhật bình luận thành công.');
     }
 
     public function destroy(Comment $comment): RedirectResponse
     {
+        $post = $this->resolveOwningPost($comment);
+        $commentId = (int) $comment->id;
+        $parentCommentId = $comment->commentable_type === Comment::class ? (int) $comment->commentable_id : null;
         $this->deletePhysicalFile($comment->image);
 
         foreach ($comment->media as $media) {
@@ -103,6 +121,11 @@ class CommentController extends Controller
 
         $comment->delete();
         SiteCache::bumpAll();
+        if ($post instanceof Post) {
+            broadcast(new CommentChanged(
+                CommentChanged::payloadForDelete((int) $post->id, $commentId, $parentCommentId)
+            ));
+        }
 
         return redirect()->route('admin.comment.index')->with('status', 'Admin đã xóa bình luận.');
     }
@@ -126,6 +149,16 @@ class CommentController extends Controller
             'comment' => Comment::query()->find($id),
             default => null,
         };
+    }
+
+    private function resolveOwningPost(Comment $comment): ?Post
+    {
+        $owner = $comment->commentable;
+        while ($owner instanceof Comment) {
+            $owner = $owner->commentable;
+        }
+
+        return $owner instanceof Post ? $owner : null;
     }
 
     private function embedImageUrls(string $content): string
