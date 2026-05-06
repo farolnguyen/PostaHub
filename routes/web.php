@@ -19,6 +19,7 @@ use App\Http\Controllers\Mypage\PostController as MypagePostController;
 use App\Http\Controllers\Mypage\ProfileController as MypageProfileController;
 use App\Http\Controllers\PostDetailController;
 use App\Http\Controllers\PostSlugPreviewController;
+use App\Http\Controllers\SearchController;
 use App\Models\Post;
 use App\Support\SiteCache;
 use Illuminate\Foundation\Auth\EmailVerificationRequest;
@@ -26,6 +27,10 @@ use Illuminate\Http\Request;
 use Illuminate\Pagination\LengthAwarePaginator;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\Route;
+
+Route::get('/search', [SearchController::class, 'index'])
+    ->middleware('throttle:40,1')
+    ->name('search.index');
 
 Route::get('/', function () {
     $page = max(1, (int) request()->integer('page', 1));

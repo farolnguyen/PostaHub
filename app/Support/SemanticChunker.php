@@ -5,6 +5,28 @@ namespace App\Support;
 class SemanticChunker
 {
     /**
+     * Tiêu đề một chunk riêng (index 0), nội dung HTML chunk tiếp theo.
+     *
+     * @return list<array{chunk_index: int, text: string}>
+     */
+    public static function chunksForIndexing(?string $title, string $contentHtml): array
+    {
+        $rows = [];
+        $index = 0;
+        $head = self::normalizeText((string) $title);
+        if ($head !== '') {
+            $rows[] = ['chunk_index' => $index, 'text' => $head];
+            $index++;
+        }
+        foreach (self::chunkFromHtml($contentHtml) as $part) {
+            $rows[] = ['chunk_index' => $index, 'text' => $part];
+            $index++;
+        }
+
+        return $rows;
+    }
+
+    /**
      * @return list<string>
      */
     public static function chunkFromHtml(string $html): array
@@ -48,4 +70,3 @@ class SemanticChunker
         return trim($text);
     }
 }
-

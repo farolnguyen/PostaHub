@@ -4,8 +4,13 @@ namespace App\Providers;
 
 use App\Models\Comment;
 use App\Models\Post;
+use App\Observers\PostObserver;
 use App\Policies\CommentPolicy;
 use App\Policies\PostPolicy;
+use App\Services\SemanticSearch\EmbeddingHttpClient;
+use App\Services\SemanticSearch\PostSemanticIndexer;
+use App\Services\SemanticSearch\QdrantHttpClient;
+use App\Services\SemanticSearch\SemanticSearchService;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
@@ -17,7 +22,16 @@ class AppServiceProvider extends ServiceProvider
      */
     public function register(): void
     {
-        //
+        $this->app->singleton(EmbeddingHttpClient::class, fn () => new EmbeddingHttpClient);
+        $this->app->singleton(QdrantHttpClient::class, fn () => QdrantHttpClient::fromConfig());
+        $this->app->singleton(PostSemanticIndexer::class, fn ($app) => new PostSemanticIndexer(
+            $app->make(EmbeddingHttpClient::class),
+            $app->make(QdrantHttpClient::class),
+        ));
+        $this->app->singleton(SemanticSearchService::class, fn ($app) => new SemanticSearchService(
+            $app->make(EmbeddingHttpClient::class),
+            $app->make(QdrantHttpClient::class),
+        ));
     }
 
     /**
@@ -31,5 +45,7 @@ class AppServiceProvider extends ServiceProvider
 
         Gate::policy(Post::class, PostPolicy::class);
         Gate::policy(Comment::class, CommentPolicy::class);
+
+        Post::observe(PostObserver::class);
     }
 }

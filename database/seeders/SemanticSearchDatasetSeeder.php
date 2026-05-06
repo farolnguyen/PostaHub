@@ -2,11 +2,13 @@
 
 namespace Database\Seeders;
 
+use App\Jobs\SemanticSearch\SemanticBulkReindexBatchJob;
 use App\Models\Comment;
 use App\Models\Post;
 use App\Models\User;
 use App\Models\UserRule;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
 
@@ -29,6 +31,11 @@ class SemanticSearchDatasetSeeder extends Seeder
         $this->cleanupPreviousSemanticUsersAndPosts();
         $users = $this->seedUsers($userCount);
         $this->seedPosts($users->pluck('id')->all(), $postCount);
+
+        if ($this->shouldQueueBulkSemanticReindex()) {
+            SemanticBulkReindexBatchJob::dispatch(0, self::POST_URL_PREFIX.'%');
+            $this->command?->warn('Đã xếp hàng semantic bulk reindex (queue semantic-bulk). Chạy queue worker để index.');
+        }
 
         $this->command?->info("Done semantic dataset: {$userCount} users, {$postCount} posts.");
     }
@@ -91,6 +98,19 @@ class SemanticSearchDatasetSeeder extends Seeder
             $this->deleteByChunks('user_rules', 'user_id', $semanticUserIds->all());
             $this->deleteByChunks('users', 'id', $semanticUserIds->all());
         }
+    }
+
+    private function shouldQueueBulkSemanticReindex(): bool
+    {
+        if (! (bool) config('semantic_search.enabled', false)) {
+            return false;
+        }
+
+        if (config('semantic_search.embedding.provider') !== 'local_http') {
+            return false;
+        }
+
+        return filter_var(env('SEMANTIC_SEED_QUEUE_BULK_REINDEX', true), FILTER_VALIDATE_BOOL);
     }
 
     private function seedPosts(array $userIds, int $postCount): void
@@ -164,14 +184,14 @@ class SemanticSearchDatasetSeeder extends Seeder
         $intro = "Bài viết #{$index} tập trung vào {$keywordA} trong bối cảnh {$entityA}. Mục tiêu là trình bày theo phong cách {$tone}, giúp người đọc tìm được cách áp dụng thực tế.";
         $body1 = "Ở góc độ {$angle}, nhiều người thường nhầm lẫn giữa {$keywordA} và {$keywordB}. Khi đặt vào tình huống cụ thể liên quan đến {$entityB}, cách tiếp cận theo từng bước sẽ hiệu quả hơn việc làm theo cảm tính.";
         $body2 = "Nếu xem đây là bài toán hỏi đáp, câu hỏi trung tâm là: khi nào nên ưu tiên {$keywordA}, khi nào nên chuyển sang {$keywordB}. Câu trả lời phụ thuộc vào mục tiêu, ràng buộc tài nguyên và mức độ ổn định mong muốn.";
-        $body3 = "Từ kinh nghiệm thực tế, để tối ưu kết quả cần kết hợp checklist ngắn gọn, đo lường kết quả và lặp vòng cải tiến. Đây là lý do nhóm nội dung này phù hợp để test semantic search với các query diễn đạt tự nhiên.";
+        $body3 = 'Từ kinh nghiệm thực tế, để tối ưu kết quả cần kết hợp checklist ngắn gọn, đo lường kết quả và lặp vòng cải tiến. Đây là lý do nhóm nội dung này phù hợp để test semantic search với các query diễn đạt tự nhiên.';
         $body4 = "Một góc nhìn khác là sự đánh đổi giữa tốc độ và độ chính xác. Trong bối cảnh {$topic['name']}, nếu không xác định rõ ưu tiên, kết quả thường không ổn định theo thời gian.";
-        $body5 = "Trong nhóm người mới, cách học hiệu quả là bắt đầu từ case nhỏ, sau đó mở rộng. Với nhóm đã có kinh nghiệm, cách tiếp cận tốt hơn là benchmark và so sánh theo tiêu chí rõ ràng.";
+        $body5 = 'Trong nhóm người mới, cách học hiệu quả là bắt đầu từ case nhỏ, sau đó mở rộng. Với nhóm đã có kinh nghiệm, cách tiếp cận tốt hơn là benchmark và so sánh theo tiêu chí rõ ràng.';
 
         $tips = [
             "Bước 1: xác định bài toán trong chủ đề {$topic['name']}.",
             "Bước 2: đối chiếu từ khóa liên quan ({$keywordA}, {$keywordB}, {$entityA}).",
-            "Bước 3: chọn hướng xử lý phù hợp với bối cảnh và mục tiêu.",
+            'Bước 3: chọn hướng xử lý phù hợp với bối cảnh và mục tiêu.',
         ];
 
         $profile = fake()->randomElement(['short', 'medium', 'long']);
@@ -229,7 +249,7 @@ class SemanticSearchDatasetSeeder extends Seeder
     }
 
     /**
-     * @param  \Illuminate\Support\Collection<int, int|string>  $postIds
+     * @param  Collection<int, int|string>  $postIds
      * @return list<int>
      */
     private function collectCommentTreeIdsForPosts($postIds): array
@@ -306,4 +326,3 @@ class SemanticSearchDatasetSeeder extends Seeder
         }
     }
 }
-

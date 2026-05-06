@@ -155,7 +155,7 @@ Mo trinh duyet: `http://127.0.0.1:8000`
 - He thong: `sessions`, `cache`, `jobs`, `failed_jobs`, `password_reset_tokens`
 
 ## Sitemap muc tieu (tom tat)
-- Public: `/`, `/login`, `/register`, `/forget_password`, `/logout`, `/post/detail`
+- Public: `/`, `/search`, `/login`, `/register`, `/forget_password`, `/logout`, `/post/detail`
 - User: `/mypage/post`, `/mypage/like`, `/mypage/profile`
 - Admin: `/admin/login`, `/admin/register`, `/admin/forget_password`, `/admin/logout`, `/admin/post/*`, `/admin/media/*`, `/admin/comment/*`, `/admin/export`, `/admin/import`, `/admin/rule`
 
@@ -180,7 +180,7 @@ docker compose -f docker-compose.qdrant.yml down
 ```
 
 ### 2) Cau hinh env (lam tay)
-Them/doi cac bien trong `.env`:
+Them/doi cac bien trong `.env` (embedding local — Python service o `PostaHub/embedding-service`):
 ```env
 SEMANTIC_SEARCH_ENABLED=true
 QDRANT_URL=http://127.0.0.1:6333
@@ -188,18 +188,50 @@ QDRANT_API_KEY=
 QDRANT_COLLECTION=post_chunks
 QDRANT_TIMEOUT_SECONDS=10
 
-EMBEDDING_PROVIDER=openai
-EMBEDDING_MODEL=text-embedding-3-small
-EMBEDDING_DIMENSIONS=1536
-EMBEDDING_API_KEY=your_key_here
-EMBEDDING_TIMEOUT_SECONDS=15
+EMBEDDING_PROVIDER=local_http
+EMBEDDING_HTTP_BASE_URL=http://127.0.0.1:8001
+EMBEDDING_MODEL=intfloat/multilingual-e5-small
+EMBEDDING_DIMENSIONS=384
+EMBEDDING_TIMEOUT_SECONDS=30
 
 SEMANTIC_CHUNK_SIZE_CHARS=1200
 SEMANTIC_CHUNK_OVERLAP_CHARS=200
 SEMANTIC_INDEX_BATCH_SIZE=100
 ```
 
-Sau do clear config:
+Chay embedding service (terminal rieng): `cd embedding-service && source .venv/bin/activate && uvicorn main:app --host 127.0.0.1 --port 8001` (tu thu muc `PostaHub/`)
+
+Kiem tra Qdrant + embedding + tao collection neu chua co:
+```bash
+php artisan semantic:ensure-infrastructure
+```
+
+Tuy chon: `php artisan semantic:ensure-infrastructure --skip-embedding` (chi Qdrant, dung khi biet truoc kich thuoc vector khop config).
+
+Neu collection `post_chunks` da tao truoc day voi size 1536 ma gio dung E5 (384), xoa collection roi chay lai ensure (dev):
+```bash
+curl -X DELETE http://127.0.0.1:6333/collections/post_chunks
+php artisan semantic:ensure-infrastructure
+```
+
+Index semantic (can embedding-service + Qdrant dung kich thuoc):
+```bash
+php artisan search:reindex-posts --post=1
+php artisan search:reindex-posts
+```
+
+### Queue semantic (Phase 4)
+Worker can xu ly hang doi `semantic` (bai don le) va `semantic-bulk` (reindex theo lo sau seed):
+```bash
+php artisan queue:work database --queue=semantic,semantic-bulk,default
+```
+Script `composer run dev` da them `--queue=semantic,semantic-bulk,default` cho `queue:listen`.
+
+Tat bulk job sau seed (chi insert DB, khong xep hang index): dat `SEMANTIC_SEED_QUEUE_BULK_REINDEX=false` trong `.env`.
+
+Tim kiem cong khai: `GET /search?q=...` (semantic neu `SEMANTIC_SEARCH_ENABLED=true` + embedding + Qdrant; fallback SQL LIKE). Debug score: `APP_DEBUG=true` va them `&debug_scores=1`.
+
+Sau do clear config khi doi env:
 ```bash
 php artisan config:clear
 ```

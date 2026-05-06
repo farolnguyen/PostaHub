@@ -16,7 +16,16 @@
         <div class="row justify-content-center mb-4">
             <div class="col-lg-8 text-center">
                 <h1 class="h3 font-weight-bold text-dark mb-2">Bảng tin bài viết</h1>
-                <p class="text-muted mb-0">Danh sách bài đăng mới nhất từ cộng đồng PostaHub.</p>
+                <p class="text-muted mb-3">Danh sách bài đăng mới nhất từ cộng đồng PostaHub.</p>
+                <form action="{{ route('search.index') }}" method="get" class="mb-0" role="search">
+                    <div class="input-group">
+                        <input type="search" name="q" class="form-control" placeholder="Tìm kiếm bài viết (ngữ nghĩa / từ khóa)..."
+                               value="{{ request('q') }}" maxlength="500" aria-label="Tìm kiếm">
+                        <div class="input-group-append">
+                            <button class="btn btn-primary" type="submit">Tìm</button>
+                        </div>
+                    </div>
+                </form>
             </div>
         </div>
 
