@@ -23,12 +23,14 @@ class PostObserver
 
         if ($post->wasRecentlyCreated) {
             ReindexSemanticPostJob::dispatch($post->id, 'interactive');
+            Post::markSemanticIndexPending((int) $post->id);
 
             return;
         }
 
         if ($post->wasChanged(['title', 'content'])) {
             ReindexSemanticPostJob::dispatch($post->id, 'interactive');
+            Post::markSemanticIndexPending((int) $post->id);
         }
     }
 

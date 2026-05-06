@@ -60,6 +60,8 @@ class PostSemanticIndexer
         PostSemanticChunk::query()->where('post_id', $postId)->delete();
 
         if ($chunkRows === []) {
+            Post::markSemanticIndexSuccess($postId);
+
             return;
         }
 
@@ -133,5 +135,7 @@ class PostSemanticIndexer
 
             PostSemanticChunk::query()->insert($insertRows);
         }
+
+        Post::markSemanticIndexSuccess($postId);
     }
 }

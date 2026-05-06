@@ -34,4 +34,12 @@ class PostPolicy
 
         return (int) $user->id === (int) $post->user_id;
     }
+
+    /**
+     * Admin / owner: reindex semantic cho đúng bài (nút thao tác).
+     */
+    public function reindexSemantic(User|Admin $user, Post $post): bool
+    {
+        return $this->update($user, $post);
+    }
 }

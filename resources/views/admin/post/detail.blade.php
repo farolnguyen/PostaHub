@@ -11,6 +11,13 @@
 <body class="bg-light">
 @include('partials.site-header')
 <div class="container py-4">
+    @if (session('status'))
+        <div class="alert alert-success">{{ session('status') }}</div>
+    @endif
+    @if ($errors->has('semantic'))
+        <div class="alert alert-danger">{{ $errors->first('semantic') }}</div>
+    @endif
+    @include('admin.post._semantic-index-panel', ['post' => $post, 'semanticRedirectTo' => 'detail'])
     <div class="card shadow-sm">
         <div class="card-body">
             <h1 class="h4">{{ $post->title }}</h1>

@@ -22,6 +22,9 @@
     @if (session('status'))
         <div class="alert alert-success">{{ session('status') }}</div>
     @endif
+    @if ($errors->has('semantic'))
+        <div class="alert alert-danger">{{ $errors->first('semantic') }}</div>
+    @endif
 
     <div class="card shadow-sm">
         <div class="table-responsive">
@@ -32,6 +35,7 @@
                         <th>Tiêu đề</th>
                         <th>Tác giả</th>
                         <th>Slug</th>
+                        <th>Semantic</th>
                         <th class="text-right">Thao tác</th>
                     </tr>
                 </thead>
@@ -42,6 +46,21 @@
                         <td>{{ $post->title }}</td>
                         <td>#{{ $post->user_id }} - {{ $post->user->name ?? 'N/A' }}</td>
                         <td><code>{{ $post->url }}</code></td>
+                        <td>
+                            @if($post->semanticIndexTrackingApplicable())
+                                @php $b = $post->semanticIndexBadge(); @endphp
+                                @if($b)
+                                    <span class="badge {{ $b['class'] }}">{{ $b['label'] }}</span>
+                                @endif
+                                <form action="{{ route('admin.post.semantic-reindex', $post) }}" method="post" class="mt-1">
+                                    @csrf
+                                    <input type="hidden" name="redirect_to" value="index">
+                                    <button type="submit" class="btn btn-sm btn-link p-0 small">Reindex</button>
+                                </form>
+                            @else
+                                <span class="text-muted small">—</span>
+                            @endif
+                        </td>
                         <td class="text-right">
                             <a href="{{ route('admin.post.detail', $post) }}" class="btn btn-sm btn-outline-info">Detail</a>
                             <a href="{{ route('admin.post.edit', $post) }}" class="btn btn-sm btn-outline-primary">Edit</a>
@@ -54,7 +73,7 @@
                     </tr>
                 @empty
                     <tr>
-                        <td colspan="5" class="text-center text-muted py-4">Chưa có bài viết nào.</td>
+                        <td colspan="6" class="text-center text-muted py-4">Chưa có bài viết nào.</td>
                     </tr>
                 @endforelse
                 </tbody>

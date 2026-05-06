@@ -2,11 +2,6 @@
     <div class="container flex-wrap">
         <a class="navbar-brand font-weight-bold" href="{{ route('home') }}">{{ config('app.name', 'PostaHub') }}</a>
 
-        <form class="form-inline mx-2 my-1 flex-nowrap" action="{{ route('search.index') }}" method="get" role="search">
-            <input type="search" name="q" value="{{ request('q') }}" class="form-control form-control-sm"
-                   placeholder="Tìm..." maxlength="500" aria-label="Tìm kiếm" style="min-width:7rem;max-width:12rem;">
-            <button type="submit" class="btn btn-light btn-sm ml-1">Tìm</button>
-        </form>
 
         <div class="d-flex align-items-center flex-grow-1 justify-content-center flex-wrap">
             <a class="btn btn-outline-light btn-sm mr-2" href="{{ route('home') }}">Trang chủ</a>

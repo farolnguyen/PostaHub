@@ -7,9 +7,11 @@ use App\Http\Requests\Post\StorePostRequest;
 use App\Http\Requests\Post\UpdatePostRequest;
 use App\Models\Post;
 use App\Models\User;
+use App\Services\SemanticSearch\PostSemanticIndexer;
 use App\Support\HtmlSanitizer;
 use App\Support\SiteCache;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Http\Request;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\View\View;
@@ -107,6 +109,45 @@ class PostController extends Controller
         return redirect()
             ->route('admin.post.index')
             ->with('status', 'Admin đã xóa bài viết thành công.');
+    }
+
+    public function semanticReindex(Request $request, Post $post, PostSemanticIndexer $indexer): RedirectResponse
+    {
+        $admin = $request->user('admin');
+        abort_if($admin === null, 403);
+        $this->authorizeForUser($admin, 'reindexSemantic', $post);
+
+        if (! (bool) config('semantic_search.enabled', false)) {
+            return back()->withErrors([
+                'semantic' => 'Semantic search đang tắt (SEMANTIC_SEARCH_ENABLED).',
+            ]);
+        }
+
+        if (config('semantic_search.embedding.provider') !== 'local_http') {
+            return back()->withErrors([
+                'semantic' => 'Cần EMBEDDING_PROVIDER=local_http và embedding-service.',
+            ]);
+        }
+
+        try {
+            $indexer->indexPost($post->fresh());
+        } catch (\Throwable $e) {
+            Post::markSemanticIndexFailed((int) $post->id, $e->getMessage());
+
+            return back()->withErrors([
+                'semantic' => 'Reindex semantic thất bại: '.$e->getMessage(),
+            ]);
+        }
+
+        $redirect = $request->string('redirect_to')->toString();
+        $intended = match ($redirect) {
+            'index' => route('admin.post.index'),
+            'detail' => route('admin.post.detail', $post),
+            default => route('admin.post.edit', $post),
+        };
+
+        return redirect()->to($intended)
+            ->with('status', 'Đã reindex semantic cho bài viết này (Qdrant + chunk DB).');
     }
 
     private function storePostMedia(Post $post, array $files): void

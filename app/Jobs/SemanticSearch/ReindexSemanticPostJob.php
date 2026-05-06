@@ -58,4 +58,13 @@ class ReindexSemanticPostJob implements ShouldQueue
             throw $e;
         }
     }
+
+    public function failed(?Throwable $exception): void
+    {
+        if ($exception === null) {
+            return;
+        }
+
+        Post::markSemanticIndexFailed($this->postId, $exception->getMessage());
+    }
 }

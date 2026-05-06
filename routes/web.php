@@ -188,6 +188,9 @@ Route::prefix('admin')->name('admin.')->middleware(['auth:admin', 'verified'])->
         Route::get('/create', [AdminPostController::class, 'create'])->name('create');
         Route::post('/', [AdminPostController::class, 'store'])->middleware('throttle:20,1')->name('store');
         Route::get('/{post}/edit', [AdminPostController::class, 'edit'])->name('edit');
+        Route::post('/{post}/semantic-reindex', [AdminPostController::class, 'semanticReindex'])
+            ->middleware('throttle:15,1')
+            ->name('semantic-reindex');
         Route::put('/{post}', [AdminPostController::class, 'update'])->middleware('throttle:20,1')->name('update');
         Route::delete('/{post}', [AdminPostController::class, 'destroy'])->name('destroy');
         Route::get('/detail/{post}', [AdminPostController::class, 'show'])->name('detail');
