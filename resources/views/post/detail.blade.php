@@ -85,15 +85,13 @@
                 <p class="text-muted">Bạn cần <a href="{{ route('user.login.form') }}">đăng nhập</a> để bình luận.</p>
             @endif
 
-            @forelse($post->comments as $comment)
-                @include('post.partials.comment-item', ['comment' => $comment, 'depth' => 0])
-            @empty
-                <p class="text-muted mb-0">Chưa có bình luận nào.</p>
-            @endforelse
+            @include('post._comments-fragment', ['post' => $post])
         </div>
     </div>
 </div>
 <script src="https://cdn.ckeditor.com/ckeditor5/41.4.2/classic/ckeditor.js"></script>
+<script src="https://unpkg.com/pusher-js@8.4.0/dist/web/pusher.min.js"></script>
+<script src="https://unpkg.com/laravel-echo@1.16.1/dist/echo.iife.js"></script>
 <script>
     function initDynamicMediaInputs(root) {
         root.querySelectorAll('.js-media-inputs').forEach(function (container) {
@@ -192,20 +190,355 @@
 
     initDynamicMediaInputs(document);
 
-    document.querySelectorAll('.js-comment-editor').forEach(function (element) {
-        ClassicEditor.create(element)
-            .then(function (editor) {
-                var form = element.closest('form');
-                if (form) {
-                    form.addEventListener('submit', function () {
-                        editor.updateSourceElement();
-                    });
-                }
-            })
-            .catch(function (error) {
-                console.error(error);
+    function initCommentEditors(root) {
+        root.querySelectorAll('.js-comment-editor').forEach(function (element) {
+            if (element.dataset.editorReady === '1') {
+                return;
+            }
+            element.dataset.editorReady = '1';
+            ClassicEditor.create(element)
+                .then(function (editor) {
+                    var form = element.closest('form');
+                    if (form && !form.dataset.editorSubmitBound) {
+                        form.addEventListener('submit', function () {
+                            editor.updateSourceElement();
+                        });
+                        form.dataset.editorSubmitBound = '1';
+                    }
+                })
+                .catch(function (error) {
+                    console.error(error);
+                    element.dataset.editorReady = '0';
+                });
+        });
+    }
+
+    initCommentEditors(document);
+
+    var commentImageFallback = {!! json_encode(asset('images/image-fallback.png')) !!};
+    var rtAuth = {
+        userId:       {!! auth('web')->id() ?? 'null' !!},
+        isAdmin:      {!! auth('admin')->check() ? 'true' : 'false' !!},
+        canReply:     {!! (auth('admin')->check() || (auth('web')->check() && auth('web')->user()?->can('create', \App\Models\Comment::class))) ? 'true' : 'false' !!},
+        csrfToken:    {!! json_encode(csrf_token()) !!},
+    };
+
+    /* ── polling state ─────────────────────────────────────── */
+    var commentsPolling = { enabled: false, consecutiveErrors: 0, timerId: null };
+
+    function startCommentsPolling() {
+        var root = document.getElementById('js-comments-root');
+        if (!root || commentsPolling.enabled) return;
+        commentsPolling.enabled = true;
+        console.info('[RT] Polling fallback activated.');
+
+        var BASE = 15000;
+
+        function scheduleNext() {
+            if (!commentsPolling.enabled) return;
+            var factor = commentsPolling.consecutiveErrors >= 2 ? 4
+                       : commentsPolling.consecutiveErrors === 1 ? 2 : 1;
+            commentsPolling.timerId = window.setTimeout(runOnce, BASE * factor);
+        }
+
+        function runOnce() {
+            if (!commentsPolling.enabled) return;
+            var url = window.location.pathname + '?comments_only=1';
+            var ctrl = new AbortController();
+            var tid  = window.setTimeout(function () { ctrl.abort(); }, 5000);
+            fetch(url, { headers: { 'X-Requested-With': 'XMLHttpRequest' }, signal: ctrl.signal })
+                .then(function (r) {
+                    window.clearTimeout(tid);
+                    if (!r.ok) throw new Error('HTTP ' + r.status);
+                    return r.text();
+                })
+                .then(function (html) {
+                    commentsPolling.consecutiveErrors = 0;
+                    var tmp = document.createElement('div');
+                    tmp.innerHTML = html;
+                    var fresh = tmp.querySelector('#js-comments-root');
+                    if (fresh && root.innerHTML !== fresh.innerHTML) {
+                        root.innerHTML = fresh.innerHTML;
+                        initDynamicMediaInputs(root);
+                        initCommentEditors(root);
+                    }
+                    scheduleNext();
+                })
+                .catch(function (err) {
+                    window.clearTimeout(tid);
+                    console.warn('[RT] Polling error:', err);
+                    commentsPolling.consecutiveErrors++;
+                    scheduleNext();
+                });
+        }
+
+        scheduleNext();
+    }
+
+    function stopCommentsPolling() {
+        if (!commentsPolling.enabled) return;
+        commentsPolling.enabled = false;
+        commentsPolling.consecutiveErrors = 0;
+        if (commentsPolling.timerId) {
+            window.clearTimeout(commentsPolling.timerId);
+            commentsPolling.timerId = null;
+        }
+        console.info('[RT] Polling stopped (WebSocket connected).');
+    }
+
+    /* ── realtime via WebSocket ────────────────────────────── */
+    function initRealtimeComments() {
+        var root = document.getElementById('js-comments-root');
+        if (!root) return;
+
+        var postId = parseInt(root.dataset.postId || '0', 10);
+        if (!postId) return;
+
+        if (!window.Pusher || !window.Echo) {
+            console.warn('[RT] pusher-js / laravel-echo CDN not loaded → polling.');
+            startCommentsPolling();
+            return;
+        }
+
+        try {
+            var wsHost   = {!! json_encode(env('REVERB_HOST', '127.0.0.1')) !!} || window.location.hostname;
+            var wsPort   = parseInt({!! json_encode((int) env('REVERB_PORT', 8080)) !!}, 10) || 8080;
+            var wsScheme = {!! json_encode(env('REVERB_SCHEME', 'http')) !!};
+            var wsKey    = {!! json_encode(env('REVERB_APP_KEY', 'local')) !!};
+
+            console.info('[RT] Connecting WebSocket → ws' + (wsScheme === 'https' ? 's' : '') + '://' + wsHost + ':' + wsPort + ' key=' + wsKey);
+
+            var EchoCtor = window.Echo;
+            window.echo = new EchoCtor({
+                broadcaster: 'pusher',
+                key: wsKey,
+                cluster: '',
+                wsHost: wsHost,
+                wsPort: wsPort,
+                wssPort: wsPort,
+                forceTLS: wsScheme === 'https',
+                enabledTransports: ['ws', 'wss'],
+                disableStats: true,
             });
-    });
+
+            window.echo.channel('post.' + postId + '.comments')
+                .listen('.CommentChanged', function (e) {
+                    try {
+                        console.info('[RT] CommentChanged received:', e);
+                        handleCommentChanged(root, e && e.payload ? e.payload : e);
+                    } catch (err) {
+                        console.error('[RT] Handler error:', err);
+                    }
+                });
+
+            /* Sau 5 giây: nếu WS vẫn chưa connected → bật polling.
+               Khi WS connected (bất cứ lúc nào) → tắt polling.
+               Cách này tránh retry-cycle trigger liên tục. */
+            var pusher = window.echo.connector && window.echo.connector.pusher;
+            if (pusher && pusher.connection) {
+                pusher.connection.bind('connected', function () {
+                    console.info('[RT] WebSocket connected ✓');
+                    stopCommentsPolling();
+                });
+                pusher.connection.bind('error', function (err) {
+                    console.warn('[RT] WebSocket error:', err);
+                });
+                pusher.connection.bind('failed', function () {
+                    console.warn('[RT] WebSocket failed → polling.');
+                    startCommentsPolling();
+                });
+            }
+
+            window.setTimeout(function () {
+                var state = pusher && pusher.connection ? pusher.connection.state : 'unknown';
+                console.info('[RT] WS state after 5s:', state);
+                if (state !== 'connected') {
+                    console.warn('[RT] WS not connected after 5s → polling.');
+                    startCommentsPolling();
+                }
+            }, 5000);
+
+        } catch (err) {
+            console.warn('[RT] Echo init failed → polling.', err);
+            startCommentsPolling();
+        }
+    }
+
+    function findCommentNode(root, commentId) {
+        return root.querySelector('#comment-' + commentId) || root.querySelector('[data-comment-id="' + commentId + '"]');
+    }
+
+    function findInsertAfterNodeForReply(root, parentCommentId, depth) {
+        var parent = findCommentNode(root, parentCommentId);
+        if (!parent) return null;
+
+        var current = parent;
+        var next = current.nextElementSibling;
+        while (next) {
+            var nextDepth = parseInt(next.dataset.depth || '-1', 10);
+            if (!Number.isFinite(nextDepth) || nextDepth <= depth - 1) {
+                break;
+            }
+            current = next;
+            next = current.nextElementSibling;
+        }
+
+        return current;
+    }
+
+    function renderCommentHtml(payload) {
+        if (!payload || !payload.comment) return '';
+        var c = payload.comment;
+        var left = Math.min((parseInt(payload.depth || '0', 10) || 0) * 24, 120);
+        var createdAt = c.created_at_iso ? new Date(c.created_at_iso).toLocaleString() : '';
+
+        var mediaHtml = '';
+        if (Array.isArray(c.media) && c.media.length) {
+            mediaHtml = '<div class="row mt-2">' + c.media.map(function (m) {
+                var kind = m.kind || '';
+                if (kind === 'image') {
+                    return '' +
+                        '<div class="col-md-3 mb-2">' +
+                        '<img src="' + m.path + '" alt="comment media" class="img-fluid rounded border" style="max-width: 280px;" ' +
+                        'onerror="this.onerror=null;this.src=\'' + commentImageFallback + '\';">' +
+                        '</div>';
+                }
+                if (kind === 'video') {
+                    return '' +
+                        '<div class="col-md-3 mb-2">' +
+                        '<video src="' + m.path + '" class="img-fluid rounded border" style="max-width: 280px;" controls></video>' +
+                        '</div>';
+                }
+                if (kind === 'audio') {
+                    return '' +
+                        '<div class="col-md-3 mb-2">' +
+                        '<audio src="' + m.path + '" class="w-100" controls></audio>' +
+                        '</div>';
+                }
+
+                return '' +
+                    '<div class="col-md-3 mb-2">' +
+                    '<a href="' + m.path + '" target="_blank" rel="noopener" class="small">file</a>' +
+                    '</div>';
+            }).join('') + '</div>';
+        }
+
+        /* ── Reply form ── */
+        var actionsHtml = '';
+        if (rtAuth.canReply) {
+            actionsHtml +=
+                '<details>' +
+                '<summary class="small text-primary">Trả lời bình luận</summary>' +
+                '<form action="/comment/reply/' + c.id + '" method="post" class="mt-2" enctype="multipart/form-data">' +
+                '<input type="hidden" name="_token" value="' + rtAuth.csrfToken + '">' +
+                '<textarea name="content" rows="3" class="form-control mb-2 js-comment-editor"></textarea>' +
+                '<div class="form-group mb-2"><div class="js-media-inputs" data-max-files="5">' +
+                '<input type="file" name="media_images[]" class="form-control-file mb-2" accept="image/*,video/*,audio/*">' +
+                '</div><small class="text-muted">Tối đa 5 file media.</small></div>' +
+                '<button type="submit" class="btn btn-sm btn-outline-primary">Gửi trả lời</button>' +
+                '</form></details>';
+        }
+
+        /* ── Edit / Delete buttons ── */
+        var canEdit   = rtAuth.isAdmin || (rtAuth.userId && rtAuth.userId === c.author_id);
+        var canDelete = rtAuth.isAdmin || (rtAuth.userId && rtAuth.userId === c.author_id);
+        if (canEdit || canDelete) {
+            var btns = '';
+            if (canEdit) {
+                btns += '<a href="/comment/' + c.id + '/edit" class="btn btn-sm btn-outline-secondary">Sửa</a> ';
+            }
+            if (canDelete) {
+                btns +=
+                    '<form action="/comment/' + c.id + '" method="post" class="d-inline"' +
+                    ' onsubmit="return confirm(\'Bạn có chắc chắn muốn xóa bình luận này?\');">' +
+                    '<input type="hidden" name="_token" value="' + rtAuth.csrfToken + '">' +
+                    '<input type="hidden" name="_method" value="DELETE">' +
+                    '<button type="submit" class="btn btn-sm btn-outline-danger">Xóa</button>' +
+                    '</form>';
+            }
+            actionsHtml += '<div class="mt-2">' + btns + '</div>';
+        }
+
+        var actionsBlock = actionsHtml ? '<div class="mt-3">' + actionsHtml + '</div>' : '';
+
+        return (
+            '<div id="comment-' + c.id + '" class="border rounded p-3 mb-3" style="margin-left: ' + left + 'px;" ' +
+                'data-comment-id="' + c.id + '" data-depth="' + (payload.depth || 0) + '"' +
+                (payload.parent_comment_id ? ' data-parent-comment-id="' + payload.parent_comment_id + '"' : '') +
+            '>' +
+                '<div class="d-flex justify-content-between"><div>' +
+                    '<strong>' + escapeHtml(c.author_name || 'N/A') + '</strong>' +
+                    '<span class="text-muted small ml-2">' + escapeHtml(createdAt) + '</span>' +
+                '</div></div>' +
+                '<div class="mt-2">' + (c.content_html || '') + '</div>' +
+                mediaHtml +
+                actionsBlock +
+            '</div>'
+        );
+    }
+
+    function escapeHtml(text) {
+        return String(text || '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;')
+            .replace(/'/g, '&#039;');
+    }
+
+    function handleCommentChanged(root, payload) {
+        if (!payload || !payload.action) return;
+
+        var noComments = root.querySelector('.js-no-comments');
+        if (noComments) noComments.remove();
+
+        var action = payload.action;
+        var commentId = parseInt(payload.comment_id || '0', 10);
+        var parentId = payload.parent_comment_id ? parseInt(payload.parent_comment_id, 10) : null;
+
+        if (action === 'deleted') {
+            var node = findCommentNode(root, commentId);
+            if (node) node.remove();
+            return;
+        }
+
+        if (action !== 'created' && action !== 'updated') return;
+
+        // Best-effort depth inference from DOM.
+        var depth = 0;
+        if (parentId) {
+            var parent = findCommentNode(root, parentId);
+            var parentDepth = parent ? parseInt(parent.dataset.depth || '0', 10) : 0;
+            depth = parentDepth + 1;
+        }
+        payload.depth = depth;
+
+        var html = renderCommentHtml(payload);
+        if (!html) return;
+
+        var existing = findCommentNode(root, commentId);
+        if (existing) {
+            existing.outerHTML = html;
+        } else if (parentId) {
+            var afterNode = findInsertAfterNodeForReply(root, parentId, depth);
+            if (afterNode && afterNode.parentNode) {
+                afterNode.insertAdjacentHTML('afterend', html);
+            } else {
+                root.insertAdjacentHTML('beforeend', html);
+            }
+        } else {
+            root.insertAdjacentHTML('beforeend', html);
+        }
+
+        // Re-init CKEditor và media inputs trên node vừa được render.
+        var newNode = findCommentNode(root, commentId);
+        if (newNode) {
+            initDynamicMediaInputs(newNode);
+            initCommentEditors(newNode);
+        }
+    }
+
+    initRealtimeComments();
 </script>
 </body>
 </html>

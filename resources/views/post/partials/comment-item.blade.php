@@ -1,8 +1,16 @@
 @php
     $left = min($depth * 24, 120);
+    $parentCommentId = $comment->commentable_type === \App\Models\Comment::class ? (int) $comment->commentable_id : null;
 @endphp
 
-<div class="border rounded p-3 mb-3" style="margin-left: {{ $left }}px;">
+<div
+    id="comment-{{ $comment->id }}"
+    class="border rounded p-3 mb-3"
+    style="margin-left: {{ $left }}px;"
+    data-comment-id="{{ $comment->id }}"
+    data-depth="{{ $depth }}"
+    @if($parentCommentId) data-parent-comment-id="{{ $parentCommentId }}" @endif
+>
     <div class="d-flex justify-content-between">
         <div>
             <strong>{{ $comment->user->name ?? 'N/A' }}</strong>

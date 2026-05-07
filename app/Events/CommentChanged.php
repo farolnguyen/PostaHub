@@ -52,12 +52,21 @@ class CommentChanged implements ShouldBroadcastNow
                 'author_id' => (int) $comment->user_id,
                 'created_at_iso' => optional($comment->created_at)->toIso8601String(),
                 'updated_at_iso' => optional($comment->updated_at)->toIso8601String(),
-                'media' => $comment->media->map(fn ($media) => [
-                    'id' => (int) $media->id,
-                    'path' => (string) $media->path,
-                    'type' => (string) $media->type,
-                    'size' => (int) ($media->size ?? 0),
-                ])->values()->all(),
+                'media' => $comment->media->map(function ($media) {
+                    $type = (string) $media->type;
+
+                    return [
+                        'id' => (int) $media->id,
+                        'path' => (string) $media->path,
+                        'type' => $type,
+                        'size' => (int) ($media->size ?? 0),
+                        'kind' => str_starts_with($type, 'image/')
+                            ? 'image'
+                            : (str_starts_with($type, 'video/')
+                                ? 'video'
+                                : (str_starts_with($type, 'audio/') ? 'audio' : 'file')),
+                    ];
+                })->values()->all(),
             ],
             'server_ts' => now()->toIso8601String(),
         ];

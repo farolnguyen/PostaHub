@@ -6,11 +6,13 @@ use App\Models\Post;
 use App\Support\ActorUserResolver;
 use App\Support\SiteCache;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Http\Request;
+use Illuminate\Http\Response;
 use Illuminate\View\View;
 
 class PostDetailController extends Controller
 {
-    public function show(string $url): View
+    public function show(Request $request, string $url): View|Response
     {
         $cacheKey = sprintf('post:detail:v%d:%s', SiteCache::postDetailVersion(), $url);
         $postId = (int) Cache::remember($cacheKey, now()->addMinutes(5), function () use ($url) {
@@ -40,6 +42,10 @@ class PostDetailController extends Controller
         $hasLiked = $actor
             ? $post->likes()->where('user_id', $actor->id)->exists()
             : false;
+
+        if ($request->boolean('comments_only')) {
+            return response()->view('post._comments-fragment', compact('post'));
+        }
 
         return view('post.detail', compact('post', 'hasLiked'));
     }

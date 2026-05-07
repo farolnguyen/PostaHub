@@ -20,8 +20,8 @@ class UpdateCommentRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'content' => ['required', 'string', 'min:2'],
-            'media_images' => ['nullable', 'array', 'max:5'],
+            'content'        => ['nullable', 'string', 'min:2', 'required_without:media_images'],
+            'media_images'   => ['nullable', 'array', 'max:5'],
             'media_images.*' => ['file', 'mimetypes:image/jpeg,image/png,image/gif,image/webp,image/bmp,image/svg+xml,video/mp4,video/webm,video/ogg,audio/mpeg,audio/mp3,audio/wav,audio/ogg,audio/webm,audio/mp4,audio/x-m4a', 'max:102400'],
         ];
     }
