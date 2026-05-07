@@ -2,6 +2,7 @@
 
 namespace App\Http\Controllers;
 
+use App\Models\CommentLike;
 use App\Models\Post;
 use App\Support\ActorUserResolver;
 use App\Support\SiteCache;
@@ -25,13 +26,21 @@ class PostDetailController extends Controller
                 'user',
                 'media',
                 'comments' => function ($query) {
-                    $query->with([
+                    $query->withCount('commentLikes')->with([
                         'user',
                         'media',
-                        'comments.user',
-                        'comments.media',
-                        'comments.comments.user',
-                        'comments.comments.media',
+                        'comments' => function ($q) {
+                            $q->withCount('commentLikes')->with([
+                                'user',
+                                'media',
+                                'comments' => function ($q2) {
+                                    $q2->withCount('commentLikes')->with([
+                                        'user',
+                                        'media',
+                                    ])->latest();
+                                },
+                            ])->latest();
+                        },
                     ])->latest();
                 },
             ])
@@ -43,10 +52,15 @@ class PostDetailController extends Controller
             ? $post->likes()->where('user_id', $actor->id)->exists()
             : false;
 
+        // Set comment IDs mà user hiện tại đã like (dùng trong view)
+        $likedCommentIds = $actor
+            ? CommentLike::where('user_id', $actor->id)->pluck('comment_id')->flip()->all()
+            : [];
+
         if ($request->boolean('comments_only')) {
-            return response()->view('post._comments-fragment', compact('post'));
+            return response()->view('post._comments-fragment', compact('post', 'likedCommentIds'));
         }
 
-        return view('post.detail', compact('post', 'hasLiked'));
+        return view('post.detail', compact('post', 'hasLiked', 'likedCommentIds'));
     }
 }

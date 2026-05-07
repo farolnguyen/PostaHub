@@ -1,6 +1,9 @@
 @php
-    $left = min($depth * 24, 120);
-    $parentCommentId = $comment->commentable_type === \App\Models\Comment::class ? (int) $comment->commentable_id : null;
+    $left             = min($depth * 24, 120);
+    $parentCommentId  = $comment->commentable_type === \App\Models\Comment::class ? (int) $comment->commentable_id : null;
+    $likeCount        = $comment->comment_likes_count ?? 0;
+    $hasLikedComment  = isset(($likedCommentIds ?? [])[$comment->id]);
+    $likeRoute        = route('like.comment.toggle', $comment);
 @endphp
 
 <div
@@ -33,6 +36,20 @@
             @endforeach
         </div>
     @endif
+
+    {{-- Nút Like --}}
+    <div class="mt-2">
+        <button
+            type="button"
+            class="btn btn-sm js-comment-like-btn {{ $hasLikedComment ? 'btn-primary' : 'btn-outline-secondary' }}"
+            data-comment-id="{{ $comment->id }}"
+            data-liked="{{ $hasLikedComment ? '1' : '0' }}"
+            data-url="{{ $likeRoute }}"
+            @guest('web') @guest('admin') disabled title="Đăng nhập để thích" @endguest @endguest
+        >
+            👍 <span class="js-like-count">{{ $likeCount }}</span>
+        </button>
+    </div>
 
     @if (auth('web')->check() || auth('admin')->check())
         <div class="mt-3">
@@ -72,6 +89,10 @@
 </div>
 
 @foreach($comment->comments as $child)
-    @include('post.partials.comment-item', ['comment' => $child, 'depth' => $depth + 1])
+    @include('post.partials.comment-item', [
+        'comment'         => $child,
+        'depth'           => $depth + 1,
+        'likedCommentIds' => $likedCommentIds ?? [],
+    ])
 @endforeach
 

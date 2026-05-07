@@ -7,6 +7,8 @@ use App\Http\Requests\Comment\StoreCommentRequest;
 use App\Http\Requests\Comment\UpdateCommentRequest;
 use App\Models\Comment;
 use App\Models\Post;
+use App\Notifications\NewCommentOnPost;
+use App\Notifications\NewReplyToComment;
 use App\Support\ActorUserResolver;
 use App\Support\HtmlSanitizer;
 use App\Support\SiteCache;
@@ -33,6 +35,12 @@ class CommentController extends Controller
             CommentChanged::payloadFromComment($comment, 'created', (int) $post->id, null)
         ));
 
+        // Notify tác giả bài viết (trừ khi tự comment bài của mình)
+        $postOwner = $post->user;
+        if ($postOwner && $postOwner->id !== $actor->id) {
+            $postOwner->notify(NewCommentOnPost::fromModels($comment, $post));
+        }
+
         return back()->with('status', 'Đã thêm bình luận cho bài viết.');
     }
 
@@ -54,6 +62,12 @@ class CommentController extends Controller
             broadcast(new CommentChanged(
                 CommentChanged::payloadFromComment($reply, 'created', (int) $post->id, (int) $comment->id)
             ));
+        }
+
+        // Notify chủ bình luận cha (trừ khi tự reply chính mình)
+        $commentOwner = $comment->user;
+        if ($commentOwner && $commentOwner->id !== $actor->id && $post instanceof Post) {
+            $commentOwner->notify(NewReplyToComment::fromModels($reply, $post));
         }
 
         return back()->with('status', 'Đã trả lời bình luận.');

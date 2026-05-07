@@ -13,6 +13,7 @@ use App\Http\Controllers\Auth\UserAuthController;
 use App\Http\Controllers\Auth\UserForgotPasswordController;
 use App\Http\Controllers\Auth\UserRegisterController;
 use App\Http\Controllers\CommentController;
+use App\Http\Controllers\CommentLikeController;
 use App\Http\Controllers\LikeController;
 use App\Http\Controllers\Mypage\LikeController as MypageLikeController;
 use App\Http\Controllers\Mypage\PostController as MypagePostController;
@@ -176,6 +177,7 @@ Route::middleware(['auth:web,admin'])->group(function () {
     });
 
     Route::post('/like/post/{post}', [LikeController::class, 'toggle'])->name('like.toggle');
+    Route::post('/like/comment/{comment}', [CommentLikeController::class, 'toggle'])->middleware('throttle:60,1')->name('like.comment.toggle');
 });
 
 Route::prefix('admin')->name('admin.')->middleware(['auth:admin', 'verified'])->group(function () {

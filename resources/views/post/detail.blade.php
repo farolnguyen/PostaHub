@@ -41,8 +41,8 @@
             @if (auth('web')->check() || auth('admin')->check())
                 <form action="{{ route('like.toggle', $post) }}" method="post" class="mt-3">
                     @csrf
-                    <button type="submit" class="btn {{ $hasLiked ? 'btn-outline-danger' : 'btn-outline-primary' }}">
-                        {{ $hasLiked ? 'Bỏ thích' : 'Thích bài viết' }}
+                    <button type="submit" class="btn {{ $hasLiked ? 'btn-primary' : 'btn-outline-primary' }}">
+                        👍 {{ $hasLiked ? 'Bỏ thích' : 'Thích bài viết' }}
                     </button>
                 </form>
             @endif
@@ -214,6 +214,36 @@
     }
 
     initCommentEditors(document);
+
+    /* ── Comment like (AJAX toggle) ───────────────────────── */
+    document.addEventListener('click', function (e) {
+        var btn = e.target.closest('.js-comment-like-btn');
+        if (!btn || btn.disabled) return;
+
+        var url    = btn.dataset.url;
+        var liked  = btn.dataset.liked === '1';
+        var countEl = btn.querySelector('.js-like-count');
+
+        btn.disabled = true;
+
+        fetch(url, {
+            method: 'POST',
+            headers: {
+                'X-Requested-With': 'XMLHttpRequest',
+                'X-CSRF-TOKEN': {!! json_encode(csrf_token()) !!},
+                'Accept': 'application/json',
+            },
+        })
+        .then(function (r) { return r.json(); })
+        .then(function (data) {
+            btn.dataset.liked = data.liked ? '1' : '0';
+            btn.classList.toggle('btn-primary',           data.liked);
+            btn.classList.toggle('btn-outline-secondary', !data.liked);
+            if (countEl) countEl.textContent = data.count;
+        })
+        .catch(function (err) { console.warn('Like error:', err); })
+        .finally(function () { btn.disabled = false; });
+    });
 
     var commentImageFallback = {!! json_encode(asset('images/image-fallback.png')) !!};
     var rtAuth = {
@@ -423,6 +453,16 @@
             }).join('') + '</div>';
         }
 
+        /* ── Like button ── */
+        var likeUrl  = '/like/comment/' + c.id;
+        var likeHtml = '<div class="mt-2">' +
+            '<button type="button" class="btn btn-sm btn-outline-secondary js-comment-like-btn"' +
+            ' data-comment-id="' + c.id + '"' +
+            ' data-liked="0"' +
+            ' data-url="' + likeUrl + '">' +
+            '❤ <span class="js-like-count">0</span>' +
+            '</button></div>';
+
         /* ── Reply form ── */
         var actionsHtml = '';
         if (rtAuth.canReply) {
@@ -472,6 +512,7 @@
                 '</div></div>' +
                 '<div class="mt-2">' + (c.content_html || '') + '</div>' +
                 mediaHtml +
+                likeHtml +
                 actionsBlock +
             '</div>'
         );
