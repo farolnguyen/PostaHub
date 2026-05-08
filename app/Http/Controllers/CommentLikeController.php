@@ -6,6 +6,7 @@ use App\Models\Comment;
 use App\Models\Post;
 use App\Notifications\CommentLiked;
 use App\Support\ActorUserResolver;
+use App\Support\NotificationHelper;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -26,12 +27,16 @@ class CommentLikeController extends Controller
             $comment->commentLikes()->create(['user_id' => $actor->id]);
             $liked = true;
 
-            // Notify chủ bình luận (trừ khi tự like bình luận của mình)
+            // Notify chủ bình luận (trừ khi tự like, và throttle 90s chống spam)
             $commentOwner = $comment->user;
             if ($commentOwner && $commentOwner->id !== $actor->id) {
                 $post = $this->resolveOwningPost($comment);
                 if ($post instanceof Post) {
-                    $commentOwner->notify(CommentLiked::fromModels($actor, $comment, $post));
+                    $throttleKey = "notif:comment_liked:{$actor->id}:{$comment->id}";
+                    if (!NotificationHelper::throttled($throttleKey)) {
+                        $commentOwner->notify(CommentLiked::fromModels($actor, $comment, $post));
+                        NotificationHelper::prune($commentOwner);
+                    }
                 }
             }
         }

@@ -317,6 +317,44 @@
     }
 
     /* ── realtime via WebSocket ────────────────────────────── */
+    function subscribeCommentChannel(echoInstance, root, postId) {
+        echoInstance.channel('post.' + postId + '.comments')
+            .listen('.CommentChanged', function (e) {
+                try {
+                    console.info('[RT] CommentChanged received:', e);
+                    handleCommentChanged(root, e && e.payload ? e.payload : e);
+                } catch (err) {
+                    console.error('[RT] Handler error:', err);
+                }
+            });
+
+        /* Sau 5 giây: nếu WS vẫn chưa connected → bật polling.
+           Khi WS connected (bất cứ lúc nào) → tắt polling. */
+        var pusher = echoInstance.connector && echoInstance.connector.pusher;
+        if (pusher && pusher.connection) {
+            pusher.connection.bind('connected', function () {
+                console.info('[RT] WebSocket connected ✓');
+                stopCommentsPolling();
+            });
+            pusher.connection.bind('error', function (err) {
+                console.warn('[RT] WebSocket error:', err);
+            });
+            pusher.connection.bind('failed', function () {
+                console.warn('[RT] WebSocket failed → polling.');
+                startCommentsPolling();
+            });
+        }
+
+        window.setTimeout(function () {
+            var state = pusher && pusher.connection ? pusher.connection.state : 'unknown';
+            console.info('[RT] WS state after 5s:', state);
+            if (state !== 'connected') {
+                console.warn('[RT] WS not connected after 5s → polling.');
+                startCommentsPolling();
+            }
+        }, 5000);
+    }
+
     function initRealtimeComments() {
         var root = document.getElementById('js-comments-root');
         if (!root) return;
@@ -324,6 +362,15 @@
         var postId = parseInt(root.dataset.postId || '0', 10);
         if (!postId) return;
 
+        /* Nếu site-header đã tạo window.echo (user đã đăng nhập),
+           reuse instance đó thay vì tạo mới — tránh duplicate connection. */
+        if (window.echo) {
+            console.info('[RT] Reusing shared Echo instance from header.');
+            subscribeCommentChannel(window.echo, root, postId);
+            return;
+        }
+
+        /* Fallback: tạo Echo mới cho user chưa đăng nhập (public channel only) */
         if (!window.Pusher || !window.Echo) {
             console.warn('[RT] pusher-js / laravel-echo CDN not loaded → polling.');
             startCommentsPolling();
@@ -336,57 +383,22 @@
             var wsScheme = {!! json_encode(env('REVERB_SCHEME', 'http')) !!};
             var wsKey    = {!! json_encode(env('REVERB_APP_KEY', 'local')) !!};
 
-            console.info('[RT] Connecting WebSocket → ws' + (wsScheme === 'https' ? 's' : '') + '://' + wsHost + ':' + wsPort + ' key=' + wsKey);
+            console.info('[RT] Creating new Echo (unauthenticated) → ws' + (wsScheme === 'https' ? 's' : '') + '://' + wsHost + ':' + wsPort);
 
             var EchoCtor = window.Echo;
             window.echo = new EchoCtor({
-                broadcaster: 'pusher',
-                key: wsKey,
-                cluster: '',
-                wsHost: wsHost,
-                wsPort: wsPort,
-                wssPort: wsPort,
-                forceTLS: wsScheme === 'https',
+                broadcaster     : 'pusher',
+                key             : wsKey,
+                cluster         : '',
+                wsHost          : wsHost,
+                wsPort          : wsPort,
+                wssPort         : wsPort,
+                forceTLS        : wsScheme === 'https',
                 enabledTransports: ['ws', 'wss'],
-                disableStats: true,
+                disableStats    : true,
             });
 
-            window.echo.channel('post.' + postId + '.comments')
-                .listen('.CommentChanged', function (e) {
-                    try {
-                        console.info('[RT] CommentChanged received:', e);
-                        handleCommentChanged(root, e && e.payload ? e.payload : e);
-                    } catch (err) {
-                        console.error('[RT] Handler error:', err);
-                    }
-                });
-
-            /* Sau 5 giây: nếu WS vẫn chưa connected → bật polling.
-               Khi WS connected (bất cứ lúc nào) → tắt polling.
-               Cách này tránh retry-cycle trigger liên tục. */
-            var pusher = window.echo.connector && window.echo.connector.pusher;
-            if (pusher && pusher.connection) {
-                pusher.connection.bind('connected', function () {
-                    console.info('[RT] WebSocket connected ✓');
-                    stopCommentsPolling();
-                });
-                pusher.connection.bind('error', function (err) {
-                    console.warn('[RT] WebSocket error:', err);
-                });
-                pusher.connection.bind('failed', function () {
-                    console.warn('[RT] WebSocket failed → polling.');
-                    startCommentsPolling();
-                });
-            }
-
-            window.setTimeout(function () {
-                var state = pusher && pusher.connection ? pusher.connection.state : 'unknown';
-                console.info('[RT] WS state after 5s:', state);
-                if (state !== 'connected') {
-                    console.warn('[RT] WS not connected after 5s → polling.');
-                    startCommentsPolling();
-                }
-            }, 5000);
+            subscribeCommentChannel(window.echo, root, postId);
 
         } catch (err) {
             console.warn('[RT] Echo init failed → polling.', err);

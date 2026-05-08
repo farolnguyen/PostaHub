@@ -5,9 +5,11 @@ namespace App\Notifications;
 use App\Models\Comment;
 use App\Models\Post;
 use Illuminate\Bus\Queueable;
+use Illuminate\Notifications\Messages\BroadcastMessage;
 use Illuminate\Notifications\Notification;
+use Illuminate\Contracts\Broadcasting\ShouldBroadcastNow;
 
-class NewCommentOnPost extends Notification
+class NewCommentOnPost extends Notification implements ShouldBroadcastNow
 {
     use Queueable;
 
@@ -36,7 +38,12 @@ class NewCommentOnPost extends Notification
 
     public function via(object $notifiable): array
     {
-        return ['database'];
+        return ['database', 'broadcast'];
+    }
+
+    public function toBroadcast(object $notifiable): BroadcastMessage
+    {
+        return new BroadcastMessage($this->toDatabase($notifiable));
     }
 
     public function toDatabase(object $notifiable): array

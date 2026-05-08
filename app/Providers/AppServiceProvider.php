@@ -11,8 +11,10 @@ use App\Services\SemanticSearch\EmbeddingHttpClient;
 use App\Services\SemanticSearch\PostSemanticIndexer;
 use App\Services\SemanticSearch\QdrantHttpClient;
 use App\Services\SemanticSearch\SemanticSearchService;
+use App\Support\ActorUserResolver;
 use Illuminate\Pagination\Paginator;
 use Illuminate\Support\Facades\Gate;
+use Illuminate\Support\Facades\View;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
@@ -47,5 +49,15 @@ class AppServiceProvider extends ServiceProvider
         Gate::policy(Comment::class, CommentPolicy::class);
 
         Post::observe(PostObserver::class);
+
+        // Chia sẻ unread count, 5 notify gần nhất, và userId tới site-header
+        View::composer('partials.site-header', function ($view) {
+            $actor = ActorUserResolver::current();
+            $view->with('unreadNotificationCount', $actor?->unreadNotifications()->count() ?? 0);
+            $view->with('recentNotifications', $actor?->notifications()->latest()->limit(5)->get() ?? collect());
+            // notificationUserId chỉ truyền cho web user (admin dùng guard riêng,
+            // không authenticate được với Pusher private channel qua web guard).
+            $view->with('notificationUserId', auth('web')->id());
+        });
     }
 }

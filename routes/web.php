@@ -15,6 +15,7 @@ use App\Http\Controllers\Auth\UserRegisterController;
 use App\Http\Controllers\CommentController;
 use App\Http\Controllers\CommentLikeController;
 use App\Http\Controllers\LikeController;
+use App\Http\Controllers\Mypage\NotificationController as MypageNotificationController;
 use App\Http\Controllers\Mypage\LikeController as MypageLikeController;
 use App\Http\Controllers\Mypage\PostController as MypagePostController;
 use App\Http\Controllers\Mypage\ProfileController as MypageProfileController;
@@ -166,6 +167,12 @@ Route::middleware(['auth:web,admin'])->group(function () {
         Route::delete('/post/{post}', [MypagePostController::class, 'destroy'])->name('post.destroy');
         Route::get('/like', [MypageLikeController::class, 'index'])->name('like.index');
         Route::get('/profile', [MypageProfileController::class, 'index'])->name('profile.index');
+
+        Route::prefix('notifications')->name('notifications.')->group(function () {
+            Route::get('/',           [MypageNotificationController::class, 'index'])->name('index');
+            Route::post('/read-all',  [MypageNotificationController::class, 'readAll'])->name('read-all');
+            Route::get('/{id}/read',  [MypageNotificationController::class, 'read'])->name('read');
+        });
     });
 
     Route::prefix('comment')->name('comment.')->group(function () {

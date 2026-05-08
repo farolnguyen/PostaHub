@@ -11,6 +11,7 @@ use App\Notifications\NewCommentOnPost;
 use App\Notifications\NewReplyToComment;
 use App\Support\ActorUserResolver;
 use App\Support\HtmlSanitizer;
+use App\Support\NotificationHelper;
 use App\Support\SiteCache;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\UploadedFile;
@@ -39,6 +40,7 @@ class CommentController extends Controller
         $postOwner = $post->user;
         if ($postOwner && $postOwner->id !== $actor->id) {
             $postOwner->notify(NewCommentOnPost::fromModels($comment, $post));
+            NotificationHelper::prune($postOwner);
         }
 
         return back()->with('status', 'Đã thêm bình luận cho bài viết.');
@@ -68,6 +70,7 @@ class CommentController extends Controller
         $commentOwner = $comment->user;
         if ($commentOwner && $commentOwner->id !== $actor->id && $post instanceof Post) {
             $commentOwner->notify(NewReplyToComment::fromModels($reply, $post));
+            NotificationHelper::prune($commentOwner);
         }
 
         return back()->with('status', 'Đã trả lời bình luận.');

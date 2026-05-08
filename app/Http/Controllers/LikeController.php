@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Models\Post;
 use App\Notifications\PostLiked;
 use App\Support\ActorUserResolver;
+use App\Support\NotificationHelper;
 use App\Support\SiteCache;
 use Illuminate\Http\RedirectResponse;
 
@@ -27,10 +28,14 @@ class LikeController extends Controller
         $post->likes()->create(['user_id' => $actor->id]);
         SiteCache::bumpAll();
 
-        // Notify tác giả bài viết (trừ khi tự like bài của mình)
+        // Notify tác giả bài viết (trừ khi tự like bài của mình, và throttle 90s chống spam)
         $postOwner = $post->user;
         if ($postOwner && $postOwner->id !== $actor->id) {
-            $postOwner->notify(PostLiked::fromModels($actor, $post));
+            $throttleKey = "notif:post_liked:{$actor->id}:{$post->id}";
+            if (!NotificationHelper::throttled($throttleKey)) {
+                $postOwner->notify(PostLiked::fromModels($actor, $post));
+                NotificationHelper::prune($postOwner);
+            }
         }
 
         return back()->with('status', 'Bạn đã thích bài viết.');
