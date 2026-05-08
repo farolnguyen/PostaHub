@@ -36,15 +36,22 @@ class CommentChanged implements ShouldBroadcastNow
         return 'CommentChanged';
     }
 
-    public static function payloadFromComment(Comment $comment, string $action, int $postId, ?int $parentCommentId): array
-    {
+    public static function payloadFromComment(
+        Comment $comment,
+        string $action,
+        int $postId,
+        ?int $rootCommentId = null,
+        ?string $mentionUserName = null
+    ): array {
         $comment->loadMissing(['user:id,name', 'media:id,mediable_id,mediable_type,path,type,size']);
 
         return [
-            'action' => $action,
-            'post_id' => $postId,
-            'comment_id' => (int) $comment->id,
-            'parent_comment_id' => $parentCommentId,
+            'action'            => $action,
+            'post_id'           => $postId,
+            'comment_id'        => (int) $comment->id,
+            'parent_comment_id' => $rootCommentId,    // kept for backward compat
+            'root_comment_id'   => $rootCommentId,    // top-level ancestor ID
+            'mention_user_name' => $mentionUserName,  // @mention khi reply to reply
             'comment' => [
                 'id' => (int) $comment->id,
                 'content_html' => (string) $comment->content,
@@ -72,15 +79,17 @@ class CommentChanged implements ShouldBroadcastNow
         ];
     }
 
-    public static function payloadForDelete(int $postId, int $commentId, ?int $parentCommentId): array
+    public static function payloadForDelete(int $postId, int $commentId, ?int $rootCommentId = null): array
     {
         return [
-            'action' => 'deleted',
-            'post_id' => $postId,
-            'comment_id' => $commentId,
-            'parent_comment_id' => $parentCommentId,
-            'comment' => null,
-            'server_ts' => now()->toIso8601String(),
+            'action'            => 'deleted',
+            'post_id'           => $postId,
+            'comment_id'        => $commentId,
+            'parent_comment_id' => $rootCommentId,
+            'root_comment_id'   => $rootCommentId,
+            'mention_user_name' => null,
+            'comment'           => null,
+            'server_ts'         => now()->toIso8601String(),
         ];
     }
 }

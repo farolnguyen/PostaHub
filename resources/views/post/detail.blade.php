@@ -326,6 +326,20 @@
                 } catch (err) {
                     console.error('[RT] Handler error:', err);
                 }
+            })
+            .listen('.CommentLikeChanged', function (e) {
+                try {
+                    var commentId = e.comment_id;
+                    var count     = e.count;
+                    var btn = document.querySelector('.js-comment-like-btn[data-comment-id="' + commentId + '"]');
+                    if (btn) {
+                        var countEl = btn.querySelector('.js-like-count');
+                        if (countEl) countEl.textContent = count;
+                        console.info('[RT] CommentLikeChanged comment=' + commentId + ' count=' + count);
+                    }
+                } catch (err) {
+                    console.error('[RT] CommentLikeChanged handler error:', err);
+                }
             });
 
         /* Sau 5 giây: nếu WS vẫn chưa connected → bật polling.
@@ -428,168 +442,260 @@
         return current;
     }
 
-    function renderCommentHtml(payload) {
-        if (!payload || !payload.comment) return '';
-        var c = payload.comment;
-        var left = Math.min((parseInt(payload.depth || '0', 10) || 0) * 24, 120);
-        var createdAt = c.created_at_iso ? new Date(c.created_at_iso).toLocaleString() : '';
-
-        var mediaHtml = '';
-        if (Array.isArray(c.media) && c.media.length) {
-            mediaHtml = '<div class="row mt-2">' + c.media.map(function (m) {
-                var kind = m.kind || '';
-                if (kind === 'image') {
-                    return '' +
-                        '<div class="col-md-3 mb-2">' +
-                        '<img src="' + m.path + '" alt="comment media" class="img-fluid rounded border" style="max-width: 280px;" ' +
-                        'onerror="this.onerror=null;this.src=\'' + commentImageFallback + '\';">' +
-                        '</div>';
-                }
-                if (kind === 'video') {
-                    return '' +
-                        '<div class="col-md-3 mb-2">' +
-                        '<video src="' + m.path + '" class="img-fluid rounded border" style="max-width: 280px;" controls></video>' +
-                        '</div>';
-                }
-                if (kind === 'audio') {
-                    return '' +
-                        '<div class="col-md-3 mb-2">' +
-                        '<audio src="' + m.path + '" class="w-100" controls></audio>' +
-                        '</div>';
-                }
-
-                return '' +
-                    '<div class="col-md-3 mb-2">' +
-                    '<a href="' + m.path + '" target="_blank" rel="noopener" class="small">file</a>' +
-                    '</div>';
-            }).join('') + '</div>';
-        }
-
-        /* ── Like button ── */
-        var likeUrl  = '/like/comment/' + c.id;
-        var likeHtml = '<div class="mt-2">' +
-            '<button type="button" class="btn btn-sm btn-outline-secondary js-comment-like-btn"' +
-            ' data-comment-id="' + c.id + '"' +
-            ' data-liked="0"' +
-            ' data-url="' + likeUrl + '">' +
-            '❤ <span class="js-like-count">0</span>' +
-            '</button></div>';
-
-        /* ── Reply form ── */
-        var actionsHtml = '';
-        if (rtAuth.canReply) {
-            actionsHtml +=
-                '<details>' +
-                '<summary class="small text-primary">Trả lời bình luận</summary>' +
-                '<form action="/comment/reply/' + c.id + '" method="post" class="mt-2" enctype="multipart/form-data">' +
-                '<input type="hidden" name="_token" value="' + rtAuth.csrfToken + '">' +
-                '<textarea name="content" rows="3" class="form-control mb-2 js-comment-editor"></textarea>' +
-                '<div class="form-group mb-2"><div class="js-media-inputs" data-max-files="5">' +
-                '<input type="file" name="media_images[]" class="form-control-file mb-2" accept="image/*,video/*,audio/*">' +
-                '</div><small class="text-muted">Tối đa 5 file media.</small></div>' +
-                '<button type="submit" class="btn btn-sm btn-outline-primary">Gửi trả lời</button>' +
-                '</form></details>';
-        }
-
-        /* ── Edit / Delete buttons ── */
-        var canEdit   = rtAuth.isAdmin || (rtAuth.userId && rtAuth.userId === c.author_id);
-        var canDelete = rtAuth.isAdmin || (rtAuth.userId && rtAuth.userId === c.author_id);
-        if (canEdit || canDelete) {
-            var btns = '';
-            if (canEdit) {
-                btns += '<a href="/comment/' + c.id + '/edit" class="btn btn-sm btn-outline-secondary">Sửa</a> ';
-            }
-            if (canDelete) {
-                btns +=
-                    '<form action="/comment/' + c.id + '" method="post" class="d-inline"' +
-                    ' onsubmit="return confirm(\'Bạn có chắc chắn muốn xóa bình luận này?\');">' +
-                    '<input type="hidden" name="_token" value="' + rtAuth.csrfToken + '">' +
-                    '<input type="hidden" name="_method" value="DELETE">' +
-                    '<button type="submit" class="btn btn-sm btn-outline-danger">Xóa</button>' +
-                    '</form>';
-            }
-            actionsHtml += '<div class="mt-2">' + btns + '</div>';
-        }
-
-        var actionsBlock = actionsHtml ? '<div class="mt-3">' + actionsHtml + '</div>' : '';
-
-        return (
-            '<div id="comment-' + c.id + '" class="border rounded p-3 mb-3" style="margin-left: ' + left + 'px;" ' +
-                'data-comment-id="' + c.id + '" data-depth="' + (payload.depth || 0) + '"' +
-                (payload.parent_comment_id ? ' data-parent-comment-id="' + payload.parent_comment_id + '"' : '') +
-            '>' +
-                '<div class="d-flex justify-content-between"><div>' +
-                    '<strong>' + escapeHtml(c.author_name || 'N/A') + '</strong>' +
-                    '<span class="text-muted small ml-2">' + escapeHtml(createdAt) + '</span>' +
-                '</div></div>' +
-                '<div class="mt-2">' + (c.content_html || '') + '</div>' +
-                mediaHtml +
-                likeHtml +
-                actionsBlock +
-            '</div>'
-        );
+    /* ─── Helpers ─────────────────────────────────────────── */
+    function timeAgo(isoString) {
+        if (!isoString) return '';
+        var diff = Math.floor((Date.now() - new Date(isoString).getTime()) / 1000);
+        if (diff < 10)   return 'vừa xong';
+        if (diff < 60)   return diff + ' giây trước';
+        if (diff < 3600) return Math.floor(diff / 60) + ' phút trước';
+        if (diff < 86400) return Math.floor(diff / 3600) + ' giờ trước';
+        return Math.floor(diff / 86400) + ' ngày trước';
     }
 
     function escapeHtml(text) {
         return String(text || '')
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;')
-            .replace(/'/g, '&#039;');
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;').replace(/'/g, '&#039;');
     }
 
+    function buildMediaHtml(mediaArr) {
+        if (!Array.isArray(mediaArr) || !mediaArr.length) return '';
+        return '<div class="row mt-2">' + mediaArr.map(function (m) {
+            var kind = m.kind || '';
+            if (kind === 'image') return '<div class="col-md-3 mb-2"><img src="' + m.path + '" class="img-fluid rounded border" style="max-width:280px;" onerror="this.onerror=null;this.src=\'' + commentImageFallback + '\';"></div>';
+            if (kind === 'video') return '<div class="col-md-3 mb-2"><video src="' + m.path + '" class="img-fluid rounded border" style="max-width:280px;" controls></video></div>';
+            if (kind === 'audio') return '<div class="col-md-3 mb-2"><audio src="' + m.path + '" class="w-100" controls></audio></div>';
+            return '<div class="col-md-3 mb-2"><a href="' + m.path + '" target="_blank" class="small">file</a></div>';
+        }).join('') + '</div>';
+    }
+
+    function buildEditDeleteHtml(cId, authorId) {
+        var canEdit   = rtAuth.isAdmin || (rtAuth.userId && rtAuth.userId === authorId);
+        var canDelete = rtAuth.isAdmin || (rtAuth.userId && rtAuth.userId === authorId);
+        if (!canEdit && !canDelete) return '';
+        var btns = '';
+        if (canEdit)   btns += '<a href="/comment/' + cId + '/edit" class="btn btn-sm btn-outline-secondary py-0 px-1">Sửa</a> ';
+        if (canDelete) btns += '<form action="/comment/' + cId + '" method="post" class="d-inline" onsubmit="return confirm(\'Xóa?\');"><input type="hidden" name="_token" value="' + rtAuth.csrfToken + '"><input type="hidden" name="_method" value="DELETE"><button type="submit" class="btn btn-sm btn-outline-danger py-0 px-1">Xóa</button></form>';
+        return '<div class="d-flex gap-1">' + btns + '</div>';
+    }
+
+    /* ─── Render top-level comment (Facebook-style card) ─── */
+    function renderCommentHtml(payload) {
+        if (!payload || !payload.comment) return '';
+        var c = payload.comment;
+        var createdAt = timeAgo(c.created_at_iso);
+
+        var likeUrl  = '/like/comment/' + c.id;
+        var likeBtn  = '<button type="button" class="btn btn-sm btn-outline-secondary js-comment-like-btn" data-comment-id="' + c.id + '" data-liked="0" data-url="' + likeUrl + '">👍 <span class="js-like-count">0</span></button>';
+
+        var replyBtn = rtAuth.canReply
+            ? '<button type="button" class="btn btn-sm btn-link p-0 text-decoration-none js-open-reply-form" data-root="' + c.id + '" data-mention=""> 💬 Trả lời</button>'
+            : '';
+
+        var editDel = buildEditDeleteHtml(c.id, c.author_id);
+
+        /* Reply form luôn hidden, JS sẽ mở */
+        var replyForm = rtAuth.canReply
+            ? '<div id="reply-form-' + c.id + '" class="px-3 pb-3 border-top" style="display:none;">' +
+              '<form action="/comment/reply/' + c.id + '" method="post" enctype="multipart/form-data" class="mt-2">' +
+              '<input type="hidden" name="_token" value="' + rtAuth.csrfToken + '">' +
+              '<div id="reply-mention-label-' + c.id + '" class="small text-primary mb-1" style="display:none;"></div>' +
+              '<textarea name="content" rows="2" class="form-control mb-2" id="reply-textarea-' + c.id + '" placeholder="Viết trả lời…"></textarea>' +
+              '<div class="d-flex gap-2"><button type="submit" class="btn btn-sm btn-primary">Gửi</button>' +
+              '<button type="button" class="btn btn-sm btn-outline-secondary js-cancel-reply" data-root="' + c.id + '">Hủy</button></div>' +
+              '</form></div>'
+            : '';
+
+        return (
+            '<div id="comment-' + c.id + '" class="card mb-3" data-comment-id="' + c.id + '" data-depth="0">' +
+            '<div class="card-body">' +
+                '<div class="d-flex justify-content-between align-items-start mb-2">' +
+                    '<div><strong>' + escapeHtml(c.author_name || 'N/A') + '</strong>' +
+                    '<span class="text-muted small ms-2">' + escapeHtml(createdAt) + '</span></div>' +
+                    editDel +
+                '</div>' +
+                '<div class="mb-2">' + (c.content_html || '') + '</div>' +
+                buildMediaHtml(c.media) +
+                '<div class="d-flex align-items-center gap-3">' + likeBtn + replyBtn + '</div>' +
+            '</div>' +
+            '<div class="js-replies-wrapper" id="replies-wrapper-' + c.id + '">' +
+                '<div id="replies-list-' + c.id + '" class="js-replies-list border-top mx-3 pt-2 pb-1"></div>' +
+                replyForm +
+            '</div>' +
+            '</div>'
+        );
+    }
+
+    /* ─── Render một reply item ─────────────────────────── */
+    function renderReplyHtml(payload) {
+        if (!payload || !payload.comment) return '';
+        var c        = payload.comment;
+        var rootId   = payload.root_comment_id;
+        var mention  = payload.mention_user_name || '';
+        var createdAt = timeAgo(c.created_at_iso);
+
+        var likeUrl = '/like/comment/' + c.id;
+        var likeBtn = '<button type="button" class="btn btn-sm btn-outline-secondary js-comment-like-btn" data-comment-id="' + c.id + '" data-liked="0" data-url="' + likeUrl + '">👍 <span class="js-like-count">0</span></button>';
+
+        var replyBtn = rtAuth.canReply && rootId
+            ? '<button type="button" class="btn btn-sm btn-link p-0 text-decoration-none js-open-reply-form" data-root="' + rootId + '" data-mention="' + escapeHtml(c.author_name || '') + '"> 💬 Trả lời</button>'
+            : '';
+
+        var editDel = buildEditDeleteHtml(c.id, c.author_id);
+
+        var mentionHtml = mention ? '<span class="text-primary small ms-1">@' + escapeHtml(mention) + '</span>' : '';
+
+        return (
+            '<div id="comment-' + c.id + '" class="py-2 border-bottom" data-comment-id="' + c.id + '" data-depth="1" data-root-comment-id="' + rootId + '">' +
+            '<div class="d-flex justify-content-between align-items-start">' +
+                '<div class="flex-grow-1">' +
+                    '<div class="mb-1"><strong>' + escapeHtml(c.author_name || 'N/A') + '</strong>' +
+                    mentionHtml +
+                    '<span class="text-muted small ms-2">' + escapeHtml(createdAt) + '</span></div>' +
+                    '<div class="mb-1">' + (c.content_html || '') + '</div>' +
+                    buildMediaHtml(c.media) +
+                    '<div class="d-flex align-items-center gap-3 mt-1">' + likeBtn + replyBtn + '</div>' +
+                '</div>' +
+                editDel +
+            '</div>' +
+            '</div>'
+        );
+    }
+
+    /* ─── Handle realtime events ────────────────────────── */
     function handleCommentChanged(root, payload) {
         if (!payload || !payload.action) return;
 
         var noComments = root.querySelector('.js-no-comments');
         if (noComments) noComments.remove();
 
-        var action = payload.action;
-        var commentId = parseInt(payload.comment_id || '0', 10);
-        var parentId = payload.parent_comment_id ? parseInt(payload.parent_comment_id, 10) : null;
+        var action    = payload.action;
+        var commentId = parseInt(payload.comment_id  || '0', 10);
+        var rootId    = payload.root_comment_id ? parseInt(payload.root_comment_id, 10) : null;
 
         if (action === 'deleted') {
             var node = findCommentNode(root, commentId);
             if (node) node.remove();
+            /* Cập nhật toggle-count nếu node xóa là reply */
+            if (rootId) updateReplyToggleCount(root, rootId);
             return;
         }
 
         if (action !== 'created' && action !== 'updated') return;
 
-        // Best-effort depth inference from DOM.
-        var depth = 0;
-        if (parentId) {
-            var parent = findCommentNode(root, parentId);
-            var parentDepth = parent ? parseInt(parent.dataset.depth || '0', 10) : 0;
-            depth = parentDepth + 1;
-        }
-        payload.depth = depth;
-
-        var html = renderCommentHtml(payload);
-        if (!html) return;
-
         var existing = findCommentNode(root, commentId);
-        if (existing) {
-            existing.outerHTML = html;
-        } else if (parentId) {
-            var afterNode = findInsertAfterNodeForReply(root, parentId, depth);
-            if (afterNode && afterNode.parentNode) {
-                afterNode.insertAdjacentHTML('afterend', html);
+
+        if (action === 'updated' && existing) {
+            /* Chỉ cập nhật nội dung, không rebuild toàn bộ node */
+            var newContent = payload.comment && payload.comment.content_html;
+            if (newContent) {
+                var contentDiv = existing.querySelector(':scope > .card-body > .mb-2, :scope > .flex-grow-1 > .mb-1:nth-child(2)');
+                if (contentDiv) contentDiv.innerHTML = newContent;
+            }
+            return;
+        }
+
+        if (rootId) {
+            /* ── Đây là một REPLY → thêm vào replies-list của root comment ── */
+            var repliesList = document.getElementById('replies-list-' + rootId);
+            if (!repliesList) return;
+
+            if (existing) {
+                existing.outerHTML = renderReplyHtml(payload);
             } else {
-                root.insertAdjacentHTML('beforeend', html);
+                repliesList.insertAdjacentHTML('beforeend', renderReplyHtml(payload));
+                /* Nếu list đang ẩn → hiện ra */
+                repliesList.style.display = '';
+                updateReplyToggleCount(root, rootId);
             }
         } else {
-            root.insertAdjacentHTML('beforeend', html);
-        }
-
-        // Re-init CKEditor và media inputs trên node vừa được render.
-        var newNode = findCommentNode(root, commentId);
-        if (newNode) {
-            initDynamicMediaInputs(newNode);
-            initCommentEditors(newNode);
+            /* ── Đây là top-level comment ── */
+            if (existing) {
+                existing.outerHTML = renderCommentHtml(payload);
+            } else {
+                root.insertAdjacentHTML('beforeend', renderCommentHtml(payload));
+            }
+            var newNode = findCommentNode(root, commentId);
+            if (newNode) initDynamicMediaInputs(newNode);
         }
     }
+
+    /* Cập nhật số đếm trên nút "Xem X trả lời" */
+    function updateReplyToggleCount(root, rootId) {
+        var list   = document.getElementById('replies-list-' + rootId);
+        var toggle = root.querySelector('.js-toggle-replies[data-root="' + rootId + '"]');
+        if (!list) return;
+        var count = list.querySelectorAll('[data-depth="1"]').length;
+        if (toggle) {
+            toggle.dataset.count = count;
+            var open = toggle.dataset.open === '1';
+            toggle.textContent = open ? 'Ẩn trả lời ▴' : 'Xem ' + count + ' trả lời ▾';
+            toggle.style.display = count > 0 ? '' : 'none';
+        } else if (count > 0) {
+            /* Tạo mới nút toggle nếu chưa có */
+            var wrapper = document.getElementById('replies-wrapper-' + rootId);
+            if (wrapper) {
+                var btn = document.createElement('div');
+                btn.className = 'px-3 pb-1';
+                btn.innerHTML = '<button type="button" class="btn btn-sm btn-link p-0 text-decoration-none js-toggle-replies" data-root="' + rootId + '" data-count="' + count + '" data-open="1">Ẩn trả lời ▴</button>';
+                wrapper.insertBefore(btn, wrapper.firstChild);
+            }
+        }
+    }
+
+    /* ─── Reply / Toggle click handlers ─────────────────── */
+    document.addEventListener('click', function (e) {
+        /* Nút "Trả lời" (mở form) */
+        var openBtn = e.target.closest('.js-open-reply-form');
+        if (openBtn) {
+            var rootId  = openBtn.dataset.root;
+            var mention = openBtn.dataset.mention || '';
+            var form    = document.getElementById('reply-form-' + rootId);
+            var label   = document.getElementById('reply-mention-label-' + rootId);
+            var textarea = document.getElementById('reply-textarea-' + rootId);
+            var list    = document.getElementById('replies-list-' + rootId);
+            if (form) {
+                form.style.display = '';
+                /* Hiện replies list nếu đang ẩn */
+                if (list) list.style.display = '';
+                if (label) {
+                    if (mention) { label.style.display = ''; label.textContent = 'Trả lời @' + mention; }
+                    else          { label.style.display = 'none'; label.textContent = ''; }
+                }
+                if (textarea) { textarea.value = mention ? '@' + mention + ' ' : ''; textarea.focus(); }
+            }
+            return;
+        }
+
+        /* Nút "Hủy" reply form */
+        var cancelBtn = e.target.closest('.js-cancel-reply');
+        if (cancelBtn) {
+            var rootId = cancelBtn.dataset.root;
+            var form   = document.getElementById('reply-form-' + rootId);
+            var label  = document.getElementById('reply-mention-label-' + rootId);
+            var textarea = document.getElementById('reply-textarea-' + rootId);
+            if (form)     form.style.display = 'none';
+            if (label)    { label.style.display = 'none'; label.textContent = ''; }
+            if (textarea) textarea.value = '';
+            return;
+        }
+
+        /* Nút "Xem X trả lời" toggle */
+        var toggleBtn = e.target.closest('.js-toggle-replies');
+        if (toggleBtn) {
+            var rootId = toggleBtn.dataset.root;
+            var list   = document.getElementById('replies-list-' + rootId);
+            if (!list) return;
+            var open = list.style.display !== 'none';
+            list.style.display = open ? 'none' : '';
+            toggleBtn.dataset.open = open ? '0' : '1';
+            toggleBtn.textContent = open
+                ? 'Xem ' + (toggleBtn.dataset.count || '0') + ' trả lời ▾'
+                : 'Ẩn trả lời ▴';
+            return;
+        }
+    });
 
     initRealtimeComments();
 </script>

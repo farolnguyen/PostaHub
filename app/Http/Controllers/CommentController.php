@@ -39,8 +39,12 @@ class CommentController extends Controller
         // Notify tác giả bài viết (trừ khi tự comment bài của mình)
         $postOwner = $post->user;
         if ($postOwner && $postOwner->id !== $actor->id) {
-            $postOwner->notify(NewCommentOnPost::fromModels($comment, $post));
-            NotificationHelper::prune($postOwner);
+            try {
+                $postOwner->notify(NewCommentOnPost::fromModels($comment, $post));
+                NotificationHelper::prune($postOwner);
+            } catch (\Throwable $e) {
+                \Log::warning('NewCommentOnPost notification failed: ' . $e->getMessage());
+            }
         }
 
         return back()->with('status', 'Đã thêm bình luận cho bài viết.');
@@ -52,25 +56,43 @@ class CommentController extends Controller
         $actor = ActorUserResolver::current();
         abort_if($actor === null, 403);
 
-        $reply = $comment->comments()->create([
+        // Facebook-style: mọi reply đều lưu thẳng vào root (top-level) comment,
+        // tránh nesting sâu, giữ thread phẳng.
+        $mentionedUser = $comment->user; // user được reply đến (để hiển thị @mention)
+        $rootComment   = $comment;
+        while ($rootComment->commentable_type === \App\Models\Comment::class) {
+            $rootComment = $rootComment->commentable; // leo lên ancestor
+        }
+
+        $reply = $rootComment->comments()->create([
             'user_id' => $actor->id,
             'content' => HtmlSanitizer::clean($this->embedImageUrls($request->validated('content') ?? '')),
-            'image' => null,
+            'image'   => null,
         ]);
         $this->storeCommentMedia($reply, $request->file('media_images', []));
         SiteCache::bumpAll();
+
         $post = $this->resolveOwningPost($reply);
         if ($post instanceof Post) {
+            // @mention user name chỉ cần khi reply không trực tiếp vào root
+            $mentionName = ($comment->id !== $rootComment->id) ? ($mentionedUser->name ?? null) : null;
             broadcast(new CommentChanged(
-                CommentChanged::payloadFromComment($reply, 'created', (int) $post->id, (int) $comment->id)
+                CommentChanged::payloadFromComment(
+                    $reply, 'created', (int) $post->id,
+                    (int) $rootComment->id, $mentionName
+                )
             ));
         }
 
-        // Notify chủ bình luận cha (trừ khi tự reply chính mình)
-        $commentOwner = $comment->user;
+        // Notify chủ bình luận được reply (trừ tự reply)
+        $commentOwner = $mentionedUser;
         if ($commentOwner && $commentOwner->id !== $actor->id && $post instanceof Post) {
-            $commentOwner->notify(NewReplyToComment::fromModels($reply, $post));
-            NotificationHelper::prune($commentOwner);
+            try {
+                $commentOwner->notify(NewReplyToComment::fromModels($reply, $post));
+                NotificationHelper::prune($commentOwner);
+            } catch (\Throwable $e) {
+                \Log::warning('NewReplyToComment notification failed: ' . $e->getMessage());
+            }
         }
 
         return back()->with('status', 'Đã trả lời bình luận.');

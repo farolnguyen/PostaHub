@@ -33,8 +33,12 @@ class LikeController extends Controller
         if ($postOwner && $postOwner->id !== $actor->id) {
             $throttleKey = "notif:post_liked:{$actor->id}:{$post->id}";
             if (!NotificationHelper::throttled($throttleKey)) {
-                $postOwner->notify(PostLiked::fromModels($actor, $post));
-                NotificationHelper::prune($postOwner);
+                try {
+                    $postOwner->notify(PostLiked::fromModels($actor, $post));
+                    NotificationHelper::prune($postOwner);
+                } catch (\Throwable $e) {
+                    \Log::warning('PostLiked notification failed: ' . $e->getMessage());
+                }
             }
         }
 

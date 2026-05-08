@@ -53,7 +53,8 @@
                             @endif
                         </div>
 
-                        {{-- Notification items --}}
+                        {{-- Notification items — id="js-notif-items" cho JS inject realtime --}}
+                        <div id="js-notif-items">
                         @forelse ($recentNotifications ?? [] as $notif)
                             @php
                                 $nd    = $notif->data ?? [];
@@ -75,7 +76,7 @@
                                 $nBg  = $notif->read_at ? '#fff' : '#eef4ff';
                                 $nUrl = route('mypage.notifications.read', $notif->id);
                             @endphp
-                            <a href="{{ $nUrl }}"
+                            <a href="{{ $nUrl }}" class="js-notif-item"
                                style="display:block; padding:9px 12px; text-decoration:none;
                                       border-bottom:1px solid #f0f0f0; background:{{ $nBg }}; color:#333;"
                                onmouseover="this.style.background='#f1f5fb'"
@@ -101,10 +102,12 @@
                                 </div>
                             </a>
                         @empty
-                            <div style="padding:24px; text-align:center; color:#aaa; font-size:.85rem;">
+                            <div id="js-notif-empty"
+                                 style="padding:24px; text-align:center; color:#aaa; font-size:.85rem;">
                                 🔔 Chưa có thông báo nào
                             </div>
                         @endforelse
+                        </div>
 
                         {{-- Footer --}}
                         <div style="padding:8px; border-top:1px solid #e9ecef; text-align:center; background:#fafafa;">
@@ -164,9 +167,63 @@
 <script src="https://unpkg.com/laravel-echo@1.16.1/dist/echo.iife.js"></script>
 <script>(function () {
     if (!window.Pusher || !window.Echo) return;
+
+    function escHtml(s) {
+        return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+    }
+
+    /* Inject notification item vào đầu dropdown (realtime) */
+    function prependNotifItem(notification) {
+        var items = document.getElementById('js-notif-items');
+        if (!items) return;
+
+        /* Xóa trạng thái "Chưa có thông báo" nếu đang hiện */
+        var empty = document.getElementById('js-notif-empty');
+        if (empty) empty.parentNode.removeChild(empty);
+
+        /* Map PHP class name → icon + text */
+        var cls = (notification.type || '').split('\\').pop(); /* e.g. CommentLiked */
+        var icons = { NewCommentOnPost:'💬', NewReplyToComment:'↩️', PostLiked:'👍', CommentLiked:'👍' };
+        var icon  = icons[cls] || '🔔';
+
+        var actor = escHtml(notification.actor_name || '');
+        var texts = {
+            NewCommentOnPost : '<strong>' + actor + '</strong> đã bình luận bài của bạn',
+            NewReplyToComment: '<strong>' + actor + '</strong> đã trả lời bình luận của bạn',
+            PostLiked        : '<strong>' + actor + '</strong> đã thích bài của bạn',
+            CommentLiked     : '<strong>' + actor + '</strong> đã thích bình luận của bạn',
+        };
+        var text      = texts[cls] || 'Bạn có thông báo mới';
+        var postTitle = escHtml(notification.post_title || '');
+        var readUrl   = '/mypage/notifications/' + (notification.id || '') + '/read';
+
+        var a = document.createElement('a');
+        a.href = readUrl;
+        a.className = 'js-notif-item';
+        a.style.cssText = 'display:block; padding:9px 12px; text-decoration:none; border-bottom:1px solid #f0f0f0; background:#eef4ff; color:#333;';
+        a.addEventListener('mouseover', function(){ this.style.background='#f1f5fb'; });
+        a.addEventListener('mouseout',  function(){ this.style.background='#eef4ff'; });
+        a.innerHTML =
+            '<div style="display:flex;align-items:flex-start;gap:8px;">' +
+                '<span style="font-size:1.05rem;flex-shrink:0;line-height:1.5;">' + icon + '</span>' +
+                '<div style="flex:1;min-width:0;">' +
+                    '<div style="font-size:.78rem;line-height:1.4;">' + text + '</div>' +
+                    (postTitle ? '<div style="font-size:.73rem;color:#555;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;max-width:230px;">' + postTitle + '</div>' : '') +
+                    '<div style="font-size:.7rem;color:#aaa;margin-top:2px;">Vừa xong</div>' +
+                '</div>' +
+                '<span style="width:7px;height:7px;border-radius:50%;background:#007bff;flex-shrink:0;margin-top:4px;"></span>' +
+            '</div>';
+
+        /* Chèn lên đầu */
+        items.insertBefore(a, items.firstChild);
+
+        /* Giữ tối đa 5 item */
+        var all = items.querySelectorAll('.js-notif-item');
+        if (all.length > 5) items.removeChild(all[all.length - 1]);
+    }
+
     try {
         var EchoCtor = window.Echo;
-        /* Tạo instance dùng chung toàn trang (reuse trong post/detail.blade.php) */
         window.echo = new EchoCtor({
             broadcaster      : 'pusher',
             key              : {!! json_encode($hdrWsKey) !!},
@@ -186,17 +243,20 @@
             }
         });
 
-        /* Lắng nghe thông báo trên kênh private của user hiện tại */
         window.echo.private('App.Models.User.{{ $notificationUserId }}')
             .notification(function (notification) {
+                /* Cập nhật badge số */
                 var badge = document.getElementById('js-notif-badge');
-                if (!badge) return;
-                var count = parseInt(badge.dataset.count || '0', 10) || 0;
-                count += 1;
-                badge.dataset.count = String(count);
-                badge.textContent   = count > 99 ? '99+' : String(count);
-                badge.style.display = '';
-                console.info('[Notify] Realtime notification received:', notification.type || notification);
+                if (badge) {
+                    var count = parseInt(badge.dataset.count || '0', 10) || 0;
+                    count += 1;
+                    badge.dataset.count = String(count);
+                    badge.textContent   = count > 99 ? '99+' : String(count);
+                    badge.style.display = '';
+                }
+                /* Inject item mới vào dropdown */
+                prependNotifItem(notification);
+                console.info('[Notify] Realtime notification received:', (notification.type || '').split('\\').pop());
             });
 
         console.info('[Notify] Echo ready, listening notifications for userId={{ $notificationUserId }}');
